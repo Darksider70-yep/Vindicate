@@ -1,42 +1,65 @@
-# Vindicate
+#Vindicate
+Vindicate is a blockchain-based skill verification platform that allows individuals to store, share, and prove their skills and credentials in a secure, tamper-proof, and universally verifiable manner. Each verified skill or achievement is recorded as an immutable transaction on the blockchain, making it permanently traceable and publicly auditable.
 
-Vindicate is a blockchain-based skill verification system that enables individuals to store, share, and prove their skills or credentials securely, reliably, and universally. By leveraging blockchain technology, every verified skill or achievement is recorded as an immutable transaction, making it permanently traceable and publicly verifiable.
+Vision
+Our vision is to empower individuals, institutions, and employers by creating a trustworthy, decentralized ecosystem for skill verification. We aim to eliminate fraud, enhance transparency, and enable universal recognition of verified skills across organizations and borders.
 
 Features
 ✅ Immutable Verification: Skills and credentials are securely stored on the blockchain.
 
-✅ Secure & Tamper-Proof: No one can modify or falsify verified credentials.
+✅ Tamper-Proof: No alteration of verified credentials is possible.
 
-✅ Universal Access: Share your verified skills anywhere, anytime.
+✅ Universal Access: Easily share your verified skills anywhere, anytime.
 
-✅ Skill Management: Add, track, and manage your professional or academic skills.
+✅ Skill Management: Add, track, and manage professional or academic skills.
 
 ✅ Role-Based Dashboards:
 
-1.Issuer: Issue credentials to individuals.
+1.Issuer: Issue credentials to verified holders.
 
-2.Holder: View and manage your verified skills.
+2.Holder: Manage and showcase your verified skills.
 
-3.Verifier: Validate credentials securely.
+3.Verifier: Validate credentials securely and transparently.
 
 ✅ Search & Filter: Quickly find credentials by skill, issuer, or holder.
 
-How It Works
-a.Credential Issuance: An authorized issuer adds a verified skill or credential to a user.
+✅ Lightweight UI: Fast, responsive, and intuitive user experience with modern UI components.
 
-b.Blockchain Recording: Each credential is stored as an immutable transaction on the blockchain.
+Technical Architecture
+Frontend: React + TypeScript, TailwindCSS, Radix-UI, Lucide Icons
+Blockchain Layer:
 
-c.Credential Verification: Anyone can verify a credential by checking its blockchain record.
+   Smart Contracts written in Clarity deployed on the Stacks blockchain
 
-d.Skill Management: Users can manage, display, and share their verified skills.
+   Every credential is an on-chain transaction, permanently stored and verifiable
+Components & Utilities:
 
-Tech Stack
-->Frontend: React, TypeScript, TailwindCSS, Radix-UI
+   Reusable Dialog, Accordion, OTP Input, Command Palette, and Tabs components
 
-->Blockchain: Immutable ledger for secure credential verification
+   Theme management with light/dark/system toggle
 
-->UI Components: Lucide icons, custom reusable components (Dialog, Accordion, OTP input, etc.)
 
+User (Holder) ----> Request Credential
+       |
+Issuer ----> Issue Credential (Signed & Recorded on Blockchain via Clarity Contract)
+       |
+Verifier ----> Verify Credential (Read from Blockchain)
+
+
+
+Smart Contract:
+
+Language: Clarity
+
+Contract Address: ST354Y8113J0AYS1PZBTD0P74XHPPP083AMWYJ1Z.skill-proof
+
+Functionality:
+
+->issueCredential(holder, skill, level, date) – Issuer adds a credential
+
+->verifyCredential(credentialId) – Verifier checks if credential is valid
+
+->getHolderCredentials(holder) – Fetch all credentials for a holder
 
 
 Demo Video:
