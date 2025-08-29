@@ -13,29 +13,29 @@ Features
 
 ✅ Role-Based Dashboards:
 
-Issuer: Issue credentials to individuals.
+1.Issuer: Issue credentials to individuals.
 
-Holder: View and manage your verified skills.
+2.Holder: View and manage your verified skills.
 
-Verifier: Validate credentials securely.
+3.Verifier: Validate credentials securely.
 
 ✅ Search & Filter: Quickly find credentials by skill, issuer, or holder.
 
 How It Works
-Credential Issuance: An authorized issuer adds a verified skill or credential to a user.
+a.Credential Issuance: An authorized issuer adds a verified skill or credential to a user.
 
-Blockchain Recording: Each credential is stored as an immutable transaction on the blockchain.
+b.Blockchain Recording: Each credential is stored as an immutable transaction on the blockchain.
 
-Credential Verification: Anyone can verify a credential by checking its blockchain record.
+c.Credential Verification: Anyone can verify a credential by checking its blockchain record.
 
-Skill Management: Users can manage, display, and share their verified skills.
+d.Skill Management: Users can manage, display, and share their verified skills.
 
 Tech Stack
-Frontend: React, TypeScript, TailwindCSS, Radix-UI
+->Frontend: React, TypeScript, TailwindCSS, Radix-UI
 
-Blockchain: Immutable ledger for secure credential verification
+->Blockchain: Immutable ledger for secure credential verification
 
-UI Components: Lucide icons, custom reusable components (Dialog, Accordion, OTP input, etc.)
+->UI Components: Lucide icons, custom reusable components (Dialog, Accordion, OTP input, etc.)
 
 
 
