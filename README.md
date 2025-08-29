@@ -25,12 +25,12 @@ Features
 ✅ Lightweight UI: Fast, responsive, and intuitive user experience with modern UI components.
 
 Technical Architecture
-Frontend: React + TypeScript, TailwindCSS, Radix-UI, Lucide Icons
+Frontend: React + TypeScript, TailwindCSS, Radix-UI, Lucide Icons  -
 Blockchain Layer:
 
    Smart Contracts written in Clarity deployed on the Stacks blockchain
 
-   Every credential is an on-chain transaction, permanently stored and verifiable
+   Every credential is an on-chain transaction, permanently stored and verifiable     -
 Components & Utilities:
 
    Reusable Dialog, Accordion, OTP Input, Command Palette, and Tabs components
