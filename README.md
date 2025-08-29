@@ -1,7 +1,6 @@
-#Vindicate
-Vindicate is a blockchain-based skill verification platform that allows individuals to store, share, and prove their skills and credentials in a secure, tamper-proof, and universally verifiable manner. Each verified skill or achievement is recorded as an immutable transaction on the blockchain, making it permanently traceable and publicly auditable.
+#Vindicate is a blockchain-based skill verification platform that allows individuals to store, share, and prove their skills and credentials in a secure, tamper-proof, and universally verifiable manner. Each verified skill or achievement is recorded as an immutable transaction on the blockchain, making it permanently traceable and publicly auditable.
 
-Vision
+Vision: 
 Our vision is to empower individuals, institutions, and employers by creating a trustworthy, decentralized ecosystem for skill verification. We aim to eliminate fraud, enhance transparency, and enable universal recognition of verified skills across organizations and borders.
 
 Features
