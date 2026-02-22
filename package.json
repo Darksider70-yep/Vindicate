@@ -1,0 +1,11 @@
+{
+  "type": "module",
+  "dependencies": {
+    "ethers": "^6.15.0",
+    "ipfs-http-client": "^60.0.1"
+  },
+  "devDependencies": {
+    "hardhat": "^3.0.2"
+  }
+  
+}
