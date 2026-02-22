@@ -1,0 +1,13 @@
+export const ROLES = Object.freeze({
+  ADMIN: "ADMIN",
+  INSTITUTION_ADMIN: "INSTITUTION_ADMIN",
+  ISSUER: "ISSUER",
+  STUDENT: "STUDENT",
+  VERIFIER: "VERIFIER"
+});
+
+export const ISSUANCE_ROLES = Object.freeze([
+  ROLES.ADMIN,
+  ROLES.INSTITUTION_ADMIN,
+  ROLES.ISSUER
+]);
