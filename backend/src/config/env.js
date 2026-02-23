@@ -217,7 +217,7 @@ function parseJsonObject(rawValue, label) {
   let parsedValue;
   try {
     parsedValue = JSON.parse(rawValue);
-  } catch (error) {
+  } catch {
     throw new Error(`Invalid environment configuration: ${label} must be valid JSON object`);
   }
 
