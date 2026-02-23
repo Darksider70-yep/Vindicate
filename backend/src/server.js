@@ -6,11 +6,27 @@ import { blockchainService } from "./services/blockchain/blockchain.service.js";
 import { ipfsService } from "./services/ipfs.service.js";
 import { initSentry } from "./services/sentry.js";
 
+async function assertCriticalDependencies() {
+  await Promise.all([
+    assertDatabaseConnectivity(),
+    blockchainService.assertConnectivity(),
+    ipfsService.assertConnectivity()
+  ]);
+}
+
 async function bootstrap() {
   initSentry();
-  await assertDatabaseConnectivity();
-  await blockchainService.assertConnectivity();
-  await ipfsService.assertConnectivity();
+
+  if (env.NODE_ENV === "development") {
+    assertCriticalDependencies().catch((error) => {
+      logger.warn(
+        { error: error.message },
+        "Dependency connectivity check failed during startup; server will continue in development"
+      );
+    });
+  } else {
+    await assertCriticalDependencies();
+  }
 
   const app = createApp();
   const server = app.listen(env.PORT, () => {

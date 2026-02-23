@@ -25,25 +25,31 @@ END $$;
 
 DO $$
 BEGIN
-  IF NOT EXISTS (
+  IF EXISTS (
     SELECT 1
-    FROM pg_enum e
-    JOIN pg_type t ON t.oid = e.enumtypid
-    WHERE t.typname = 'IssuerStatus' AND e.enumlabel = 'PENDING'
+    FROM pg_type
+    WHERE typname = 'IssuerStatus'
   ) THEN
-    ALTER TYPE "IssuerStatus" ADD VALUE 'PENDING';
-  END IF;
-END $$;
-
-DO $$
-BEGIN
-  IF NOT EXISTS (
-    SELECT 1
-    FROM pg_enum e
-    JOIN pg_type t ON t.oid = e.enumtypid
-    WHERE t.typname = 'IssuerStatus' AND e.enumlabel = 'REJECTED'
-  ) THEN
-    ALTER TYPE "IssuerStatus" ADD VALUE 'REJECTED';
+    IF NOT EXISTS (
+      SELECT 1
+      FROM pg_enum e
+      JOIN pg_type t ON t.oid = e.enumtypid
+      WHERE t.typname = 'IssuerStatus' AND e.enumlabel = 'PENDING'
+    ) OR NOT EXISTS (
+      SELECT 1
+      FROM pg_enum e
+      JOIN pg_type t ON t.oid = e.enumtypid
+      WHERE t.typname = 'IssuerStatus' AND e.enumlabel = 'REJECTED'
+    ) THEN
+      ALTER TABLE "issuers"
+        ALTER COLUMN "status" DROP DEFAULT;
+      ALTER TYPE "IssuerStatus" RENAME TO "IssuerStatus_old";
+      CREATE TYPE "IssuerStatus" AS ENUM ('PENDING', 'ACTIVE', 'REVOKED', 'REJECTED');
+      ALTER TABLE "issuers"
+        ALTER COLUMN "status" TYPE "IssuerStatus"
+        USING ("status"::text::"IssuerStatus");
+      DROP TYPE "IssuerStatus_old";
+    END IF;
   END IF;
 END $$;
 

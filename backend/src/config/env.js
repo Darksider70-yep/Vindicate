@@ -4,6 +4,15 @@ import dotenv from "dotenv";
 import { ethers } from "ethers";
 import { z } from "zod";
 
+const optionalUrlSchema = z.preprocess(
+  (value) => (typeof value === "string" && value.trim() === "" ? undefined : value),
+  z.string().url().optional()
+);
+const optionalStringSchema = z.preprocess(
+  (value) => (typeof value === "string" && value.trim() === "" ? undefined : value),
+  z.string().optional()
+);
+
 const runtimeNodeEnv = process.env.NODE_ENV ?? "development";
 const rootDir = process.cwd();
 const baseEnvPath = path.join(rootDir, ".env");
@@ -78,7 +87,21 @@ const envSchema = z.object({
   SIWE_DOMAIN: z.string().min(1),
   SIWE_URI: z.string().url(),
   ENABLE_METRICS: z.string().optional(),
-  SENTRY_DSN: z.string().url().optional()
+  SENTRY_DSN: optionalUrlSchema
+  ,
+  DID_ETHR_NETWORK: optionalStringSchema,
+  DID_DOCUMENT_SERVICE_URL: optionalUrlSchema,
+  VC_ISSUER_PRIVATE_KEYS_JSON: optionalStringSchema,
+  VC_DEFAULT_CONTEXTS: z.string().default("https://www.w3.org/2018/credentials/v1"),
+  VC_DEFAULT_TYPES: z.string().default("VerifiableCredential,VindicateCredential"),
+  VC_OFFLINE_QR_TTL_SECONDS: z.coerce.number().int().positive().default(300),
+  VC_PROOF_MAX_AGE_SECONDS: z.coerce.number().int().positive().default(31536000),
+  ZK_PROOF_MODE: z.enum(["mock", "groth16"]).default("mock"),
+  ZK_CHALLENGE_TTL_SECONDS: z.coerce.number().int().positive().default(300),
+  ZK_VERIFICATION_KEY_PATH: optionalStringSchema,
+  ZK_PUBLIC_SIGNAL_INDEX_CHALLENGE: z.coerce.number().int().min(0).default(0),
+  MULTICHAIN_RPC_URLS_JSON: optionalStringSchema,
+  MULTICHAIN_CONTRACT_ADDRESSES_JSON: optionalStringSchema
 });
 
 const parsed = envSchema.safeParse(process.env);
@@ -186,6 +209,85 @@ const authCookieSecure =
     ? ["1", "true", "yes", "on"].includes(raw.AUTH_COOKIE_SECURE.toLowerCase())
     : raw.NODE_ENV === "production";
 
+function parseJsonObject(rawValue, label) {
+  if (!rawValue) {
+    return {};
+  }
+
+  let parsedValue;
+  try {
+    parsedValue = JSON.parse(rawValue);
+  } catch (error) {
+    throw new Error(`Invalid environment configuration: ${label} must be valid JSON object`);
+  }
+
+  if (!parsedValue || typeof parsedValue !== "object" || Array.isArray(parsedValue)) {
+    throw new Error(`Invalid environment configuration: ${label} must be JSON object`);
+  }
+
+  return parsedValue;
+}
+
+const issuerPrivateKeysMap = parseJsonObject(
+  raw.VC_ISSUER_PRIVATE_KEYS_JSON,
+  "VC_ISSUER_PRIVATE_KEYS_JSON"
+);
+for (const [did, privateKey] of Object.entries(issuerPrivateKeysMap)) {
+  if (!did.startsWith("did:ethr:")) {
+    throw new Error(
+      "Invalid environment configuration: VC_ISSUER_PRIVATE_KEYS_JSON keys must be did:ethr DIDs"
+    );
+  }
+  if (typeof privateKey !== "string" || !/^0x[0-9a-fA-F]{64}$/.test(privateKey)) {
+    throw new Error(
+      `Invalid environment configuration: issuer private key for ${did} must be 32-byte hex`
+    );
+  }
+}
+
+const multichainRpcUrls = parseJsonObject(raw.MULTICHAIN_RPC_URLS_JSON, "MULTICHAIN_RPC_URLS_JSON");
+for (const [chainId, rpcUrl] of Object.entries(multichainRpcUrls)) {
+  if (!/^[0-9]+$/.test(chainId)) {
+    throw new Error("Invalid environment configuration: MULTICHAIN_RPC_URLS_JSON keys must be chain IDs");
+  }
+  if (typeof rpcUrl !== "string" || rpcUrl.length === 0) {
+    throw new Error("Invalid environment configuration: MULTICHAIN_RPC_URLS_JSON values must be RPC URLs");
+  }
+}
+
+const multichainContractAddressesRaw = parseJsonObject(
+  raw.MULTICHAIN_CONTRACT_ADDRESSES_JSON,
+  "MULTICHAIN_CONTRACT_ADDRESSES_JSON"
+);
+const multichainContractAddresses = {};
+for (const [chainId, contractAddress] of Object.entries(multichainContractAddressesRaw)) {
+  if (!/^[0-9]+$/.test(chainId)) {
+    throw new Error(
+      "Invalid environment configuration: MULTICHAIN_CONTRACT_ADDRESSES_JSON keys must be chain IDs"
+    );
+  }
+  if (typeof contractAddress !== "string" || !ethers.isAddress(contractAddress)) {
+    throw new Error(
+      `Invalid environment configuration: MULTICHAIN contract address for ${chainId} is invalid`
+    );
+  }
+  multichainContractAddresses[chainId] = ethers.getAddress(contractAddress);
+}
+
+const vcDefaultContexts = raw.VC_DEFAULT_CONTEXTS.split(",")
+  .map((entry) => entry.trim())
+  .filter(Boolean);
+if (vcDefaultContexts.length === 0) {
+  throw new Error("Invalid environment configuration: VC_DEFAULT_CONTEXTS must include at least one context");
+}
+
+const vcDefaultTypes = raw.VC_DEFAULT_TYPES.split(",")
+  .map((entry) => entry.trim())
+  .filter(Boolean);
+if (vcDefaultTypes.length === 0) {
+  throw new Error("Invalid environment configuration: VC_DEFAULT_TYPES must include at least one type");
+}
+
 export const env = Object.freeze({
   ...raw,
   JWT_ACCESS_SECRET: accessSecret,
@@ -201,5 +303,11 @@ export const env = Object.freeze({
   IPFS_ENCRYPTION_KEY: normalizedEncryptionKey,
   ENABLE_METRICS: enableMetrics,
   AUTH_COOKIE_ENABLED: authCookieEnabled,
-  AUTH_COOKIE_SECURE: authCookieSecure
+  AUTH_COOKIE_SECURE: authCookieSecure,
+  DID_ETHR_NETWORK: raw.DID_ETHR_NETWORK ?? String(raw.CHAIN_ID),
+  VC_ISSUER_PRIVATE_KEYS: issuerPrivateKeysMap,
+  VC_DEFAULT_CONTEXTS: vcDefaultContexts,
+  VC_DEFAULT_TYPES: vcDefaultTypes,
+  MULTICHAIN_RPC_URLS: multichainRpcUrls,
+  MULTICHAIN_CONTRACT_ADDRESSES: multichainContractAddresses
 });

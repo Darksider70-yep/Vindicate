@@ -39,6 +39,25 @@ enum WalletRotationStatus {
   REJECTED
 }
 
+enum VerifiableCredentialStatus {
+  ACTIVE
+  REVOKED
+  EXPIRED
+}
+
+enum OfflineQrTokenStatus {
+  ISSUED
+  CONSUMED
+  EXPIRED
+  REVOKED
+}
+
+enum ZkChallengeStatus {
+  PENDING
+  CONSUMED
+  EXPIRED
+}
+
 model User {
   id                     String                  @id @default(cuid())
   walletAddress          String                  @unique @db.VarChar(42)
@@ -58,6 +77,10 @@ model User {
   walletRotationSubjects WalletRotationRequest[] @relation("WalletRotationSubject")
   walletRotationRequests WalletRotationRequest[] @relation("WalletRotationRequestedBy")
   walletRotationReviews  WalletRotationRequest[] @relation("WalletRotationReviewedBy")
+  didIdentities          DidIdentity[]           @relation("DidIdentityUser")
+  didDocuments           DidDocument[]           @relation("DidDocumentCreatedBy")
+  issuedVcRecords        VerifiableCredential[]  @relation("VcIssuerUser")
+  subjectVcRecords       VerifiableCredential[]  @relation("VcSubjectUser")
   createdAt              DateTime                @default(now())
   updatedAt              DateTime                @updatedAt
 
@@ -67,22 +90,24 @@ model User {
 }
 
 model Institution {
-  id            String            @id @default(cuid())
-  name          String            @db.VarChar(255)
-  code          String            @unique @db.VarChar(64)
-  status        InstitutionStatus @default(PENDING)
-  verified      Boolean           @default(false)
-  adminWallet   String?           @unique @map("admin_wallet") @db.VarChar(42)
-  requestedById String?           @map("requested_by_id")
-  reviewedById  String?           @map("reviewed_by_id")
-  reviewNotes   String?           @map("review_notes") @db.VarChar(512)
-  users         User[]            @relation("InstitutionUsers")
+  id            String                 @id @default(cuid())
+  name          String                 @db.VarChar(255)
+  code          String                 @unique @db.VarChar(64)
+  status        InstitutionStatus      @default(PENDING)
+  verified      Boolean                @default(false)
+  adminWallet   String?                @unique @map("admin_wallet") @db.VarChar(42)
+  requestedById String?                @map("requested_by_id")
+  reviewedById  String?                @map("reviewed_by_id")
+  reviewNotes   String?                @map("review_notes") @db.VarChar(512)
+  users         User[]                 @relation("InstitutionUsers")
   issuers       Issuer[]
   credentials   Credential[]
-  requestedBy   User?             @relation("InstitutionRequestedBy", fields: [requestedById], references: [id], onDelete: SetNull)
-  reviewedBy    User?             @relation("InstitutionReviewedBy", fields: [reviewedById], references: [id], onDelete: SetNull)
-  createdAt     DateTime          @default(now())
-  updatedAt     DateTime          @updatedAt
+  didIdentities DidIdentity[]          @relation("DidIdentityInstitution")
+  vcRecords     VerifiableCredential[]
+  requestedBy   User?                  @relation("InstitutionRequestedBy", fields: [requestedById], references: [id], onDelete: SetNull)
+  reviewedBy    User?                  @relation("InstitutionReviewedBy", fields: [reviewedById], references: [id], onDelete: SetNull)
+  createdAt     DateTime               @default(now())
+  updatedAt     DateTime               @updatedAt
 
   @@index([status])
   @@index([verified])
@@ -117,30 +142,31 @@ model Issuer {
 }
 
 model Credential {
-  id             String           @id @default(cuid())
-  credentialId   BigInt           @unique @map("credential_id")
-  studentId      String           @map("student_id")
-  issuerId       String           @map("issuer_id")
-  institutionId  String           @map("institution_id")
-  studentAddress String           @map("student_address") @db.VarChar(42)
-  issuerAddress  String           @map("issuer_address") @db.VarChar(42)
-  credentialHash String           @unique @map("credential_hash") @db.VarChar(66)
-  ipfsCid        String           @map("ipfs_cid") @db.VarChar(255)
-  fileChecksum   String           @map("file_checksum") @db.VarChar(64)
-  fileName       String           @map("file_name") @db.VarChar(255)
-  mimeType       String           @map("mime_type") @db.VarChar(128)
-  metadata       Json?            @map("metadata")
-  encrypted      Boolean          @default(false)
-  status         CredentialStatus @default(ACTIVE)
-  txHash         String           @map("tx_hash") @db.VarChar(66)
-  issuedAt       DateTime         @map("issued_at")
-  student        User             @relation("CredentialStudent", fields: [studentId], references: [id], onDelete: Restrict)
-  issuer         User             @relation("CredentialIssuer", fields: [issuerId], references: [id], onDelete: Restrict)
-  institution    Institution      @relation(fields: [institutionId], references: [id], onDelete: Restrict)
-  credentialKey  CredentialKey?
-  revocation     Revocation?
-  createdAt      DateTime         @default(now()) @map("created_at")
-  updatedAt      DateTime         @updatedAt @map("updated_at")
+  id                   String                @id @default(cuid())
+  credentialId         BigInt                @unique @map("credential_id")
+  studentId            String                @map("student_id")
+  issuerId             String                @map("issuer_id")
+  institutionId        String                @map("institution_id")
+  studentAddress       String                @map("student_address") @db.VarChar(42)
+  issuerAddress        String                @map("issuer_address") @db.VarChar(42)
+  credentialHash       String                @unique @map("credential_hash") @db.VarChar(66)
+  ipfsCid              String                @map("ipfs_cid") @db.VarChar(255)
+  fileChecksum         String                @map("file_checksum") @db.VarChar(64)
+  fileName             String                @map("file_name") @db.VarChar(255)
+  mimeType             String                @map("mime_type") @db.VarChar(128)
+  metadata             Json?                 @map("metadata")
+  encrypted            Boolean               @default(false)
+  status               CredentialStatus      @default(ACTIVE)
+  txHash               String                @map("tx_hash") @db.VarChar(66)
+  issuedAt             DateTime              @map("issued_at")
+  student              User                  @relation("CredentialStudent", fields: [studentId], references: [id], onDelete: Restrict)
+  issuer               User                  @relation("CredentialIssuer", fields: [issuerId], references: [id], onDelete: Restrict)
+  institution          Institution           @relation(fields: [institutionId], references: [id], onDelete: Restrict)
+  credentialKey        CredentialKey?
+  revocation           Revocation?
+  createdAt            DateTime              @default(now()) @map("created_at")
+  updatedAt            DateTime              @updatedAt @map("updated_at")
+  verifiableCredential VerifiableCredential?
 
   @@index([credentialHash])
   @@index([fileChecksum])
@@ -298,4 +324,153 @@ model WalletRotationRequest {
   @@index([newWalletAddress])
   @@index([status])
   @@map("wallet_rotation_requests")
+}
+
+model DidIdentity {
+  id                String                 @id @default(cuid())
+  did               String                 @unique @db.VarChar(255)
+  method            String                 @db.VarChar(32)
+  network           String                 @db.VarChar(64)
+  controllerAddress String                 @map("controller_address") @db.VarChar(42)
+  userId            String?                @map("user_id")
+  institutionId     String?                @map("institution_id")
+  isActive          Boolean                @default(true) @map("is_active")
+  currentDocumentId String?                @unique @map("current_document_id")
+  user              User?                  @relation("DidIdentityUser", fields: [userId], references: [id], onDelete: SetNull)
+  institution       Institution?           @relation("DidIdentityInstitution", fields: [institutionId], references: [id], onDelete: SetNull)
+  currentDocument   DidDocument?           @relation("CurrentDidDocument", fields: [currentDocumentId], references: [id], onDelete: SetNull)
+  documents         DidDocument[]          @relation("DidIdentityDocuments")
+  issuerVcRecords   VerifiableCredential[] @relation("VcIssuerDidIdentity")
+  subjectVcRecords  VerifiableCredential[] @relation("VcSubjectDidIdentity")
+  createdAt         DateTime               @default(now()) @map("created_at")
+  updatedAt         DateTime               @updatedAt @map("updated_at")
+
+  @@index([userId])
+  @@index([institutionId])
+  @@index([controllerAddress])
+  @@index([isActive])
+  @@map("did_identities")
+}
+
+model DidDocument {
+  id              String       @id @default(cuid())
+  didIdentityId   String       @map("did_identity_id")
+  documentCid     String?      @map("document_cid") @db.VarChar(255)
+  documentHash    String       @map("document_hash") @db.VarChar(66)
+  document        Json
+  createdByUserId String?      @map("created_by_user_id")
+  didIdentity     DidIdentity  @relation("DidIdentityDocuments", fields: [didIdentityId], references: [id], onDelete: Restrict)
+  currentForDid   DidIdentity? @relation("CurrentDidDocument")
+  createdByUser   User?        @relation("DidDocumentCreatedBy", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  createdAt       DateTime     @default(now()) @map("created_at")
+  updatedAt       DateTime     @updatedAt @map("updated_at")
+
+  @@index([didIdentityId])
+  @@index([documentHash])
+  @@map("did_documents")
+}
+
+model VerifiableCredential {
+  id                   String                     @id @default(cuid())
+  credentialDbId       String?                    @unique @map("credential_db_id")
+  issuerUserId         String                     @map("issuer_user_id")
+  subjectUserId        String                     @map("subject_user_id")
+  institutionId        String                     @map("institution_id")
+  issuerDid            String                     @map("issuer_did") @db.VarChar(255)
+  subjectDid           String                     @map("subject_did") @db.VarChar(255)
+  issuerDidIdentityId  String?                    @map("issuer_did_identity_id")
+  subjectDidIdentityId String?                    @map("subject_did_identity_id")
+  vcHash               String                     @unique @map("vc_hash") @db.VarChar(66)
+  credentialHash       String                     @map("credential_hash") @db.VarChar(66)
+  merkleRoot           String                     @map("merkle_root") @db.VarChar(66)
+  merkleLeaves         Json                       @map("merkle_leaves")
+  vcDocument           Json                       @map("vc_document")
+  proofType            String                     @map("proof_type") @db.VarChar(128)
+  proofSignature       String                     @map("proof_signature") @db.VarChar(255)
+  proofCreatedAt       DateTime                   @map("proof_created_at")
+  chainAnchors         Json?                      @map("chain_anchors")
+  status               VerifiableCredentialStatus @default(ACTIVE)
+  revokedAt            DateTime?                  @map("revoked_at")
+  expiresAt            DateTime?                  @map("expires_at")
+  credential           Credential?                @relation(fields: [credentialDbId], references: [id], onDelete: SetNull)
+  issuerUser           User                       @relation("VcIssuerUser", fields: [issuerUserId], references: [id], onDelete: Restrict)
+  subjectUser          User                       @relation("VcSubjectUser", fields: [subjectUserId], references: [id], onDelete: Restrict)
+  institution          Institution                @relation(fields: [institutionId], references: [id], onDelete: Restrict)
+  issuerDidIdentity    DidIdentity?               @relation("VcIssuerDidIdentity", fields: [issuerDidIdentityId], references: [id], onDelete: SetNull)
+  subjectDidIdentity   DidIdentity?               @relation("VcSubjectDidIdentity", fields: [subjectDidIdentityId], references: [id], onDelete: SetNull)
+  offlineQrTokens      OfflineQrToken[]
+  zkChallenges         ZkProofChallenge[]
+  createdAt            DateTime                   @default(now()) @map("created_at")
+  updatedAt            DateTime                   @updatedAt @map("updated_at")
+
+  @@index([issuerUserId])
+  @@index([subjectUserId])
+  @@index([institutionId])
+  @@index([issuerDid])
+  @@index([subjectDid])
+  @@index([credentialHash])
+  @@index([status])
+  @@map("verifiable_credentials")
+}
+
+model OfflineQrToken {
+  id                    String               @id @default(cuid())
+  vcId                  String               @map("vc_id")
+  tokenNonce            String               @unique @map("token_nonce") @db.VarChar(128)
+  tokenHash             String               @unique @map("token_hash") @db.VarChar(66)
+  verifierChallengeHash String?              @map("verifier_challenge_hash") @db.VarChar(66)
+  issuerSignature       String               @map("issuer_signature") @db.VarChar(255)
+  status                OfflineQrTokenStatus @default(ISSUED)
+  issuedAt              DateTime             @map("issued_at")
+  expiresAt             DateTime             @map("expires_at")
+  consumedAt            DateTime?            @map("consumed_at")
+  vc                    VerifiableCredential @relation(fields: [vcId], references: [id], onDelete: Restrict)
+  createdAt             DateTime             @default(now()) @map("created_at")
+  updatedAt             DateTime             @updatedAt @map("updated_at")
+
+  @@index([vcId])
+  @@index([status])
+  @@index([expiresAt])
+  @@map("offline_qr_tokens")
+}
+
+model ZkProofChallenge {
+  id            String               @id @default(cuid())
+  vcId          String               @map("vc_id")
+  challenge     String               @unique @db.VarChar(128)
+  challengeHash String               @unique @map("challenge_hash") @db.VarChar(66)
+  verifierDid   String               @map("verifier_did") @db.VarChar(255)
+  subjectDid    String               @map("subject_did") @db.VarChar(255)
+  status        ZkChallengeStatus    @default(PENDING)
+  expiresAt     DateTime             @map("expires_at")
+  consumedAt    DateTime?            @map("consumed_at")
+  vc            VerifiableCredential @relation(fields: [vcId], references: [id], onDelete: Restrict)
+  submissions   ZkProofSubmission[]
+  createdAt     DateTime             @default(now()) @map("created_at")
+  updatedAt     DateTime             @updatedAt @map("updated_at")
+
+  @@index([vcId])
+  @@index([status])
+  @@index([expiresAt])
+  @@map("zk_proof_challenges")
+}
+
+model ZkProofSubmission {
+  id                 String           @id @default(cuid())
+  challengeId        String           @map("challenge_id")
+  nullifierHash      String           @unique @map("nullifier_hash") @db.VarChar(66)
+  proof              Json
+  publicSignals      Json             @map("public_signals")
+  verificationMethod String           @map("verification_method") @db.VarChar(64)
+  verified           Boolean
+  verifiedAt         DateTime?        @map("verified_at")
+  expiresAt          DateTime?        @map("expires_at")
+  challenge          ZkProofChallenge @relation(fields: [challengeId], references: [id], onDelete: Restrict)
+  createdAt          DateTime         @default(now()) @map("created_at")
+  updatedAt          DateTime         @updatedAt @map("updated_at")
+
+  @@index([challengeId])
+  @@index([verified])
+  @@index([expiresAt])
+  @@map("zk_proof_submissions")
 }

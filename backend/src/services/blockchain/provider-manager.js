@@ -5,7 +5,7 @@ export class ProviderManager {
   constructor({ rpcUrls, chainId, logger }) {
     this.logger = logger;
     this.providers = rpcUrls.map(
-      (rpcUrl) => new ethers.JsonRpcProvider(rpcUrl, chainId, { staticNetwork: chainId })
+      (rpcUrl) => new ethers.JsonRpcProvider(rpcUrl, chainId)
     );
     this.activeIndex = 0;
   }

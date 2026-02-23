@@ -1,4 +1,5 @@
-const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:4000";
+const API_BASE = (import.meta.env.VITE_API_BASE || "http://localhost:4000").replace(/\/+$/, "");
+const API_TIMEOUT_MS = Number(import.meta.env.VITE_API_TIMEOUT_MS || 15000);
 const ACCESS_TOKEN_KEY = "vindicate_access_token";
 const REFRESH_TOKEN_KEY = "vindicate_refresh_token";
 const CSRF_TOKEN_KEY = "vindicate_csrf_token";
@@ -96,13 +97,32 @@ export async function apiRequest(path, options = {}) {
     mergedHeaders["x-csrf-token"] = csrfToken;
   }
 
-  const response = await fetch(`${API_BASE}${path}`, {
-    method,
-    headers: mergedHeaders,
-    body: body !== undefined ? JSON.stringify(body) : undefined,
-    credentials: "include"
-  });
-  const payload = await parseResponseBody(response);
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), API_TIMEOUT_MS);
+
+  let response;
+  let payload;
+  try {
+    response = await fetch(`${API_BASE}${path}`, {
+      method,
+      headers: mergedHeaders,
+      body: body !== undefined ? JSON.stringify(body) : undefined,
+      credentials: "include",
+      signal: controller.signal
+    });
+    payload = await parseResponseBody(response);
+  } catch (error) {
+    if (error?.name === "AbortError") {
+      const timeoutError = new Error(`Request timed out after ${API_TIMEOUT_MS}ms`);
+      timeoutError.code = "REQUEST_TIMEOUT";
+      throw timeoutError;
+    }
+    const networkError = new Error(`Network request failed: ${error?.message ?? "unknown error"}`);
+    networkError.code = "NETWORK_ERROR";
+    throw networkError;
+  } finally {
+    clearTimeout(timeout);
+  }
 
   if (
     response.status === 401 &&
@@ -130,6 +150,14 @@ export async function requestNonce(address) {
   return apiRequest("/auth/nonce", {
     method: "POST",
     body: { address },
+    auth: false,
+    skipRefresh: true
+  });
+}
+
+export async function getHealth() {
+  return apiRequest("/health", {
+    method: "GET",
     auth: false,
     skipRefresh: true
   });

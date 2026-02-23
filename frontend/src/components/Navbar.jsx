@@ -13,6 +13,11 @@ export default function Navbar() {
   const navigate = useNavigate();
 
   const handleLogin = async () => {
+    if (!hasEthereumProvider) {
+      window.open("https://metamask.io/download/", "_blank", "noopener,noreferrer");
+      return;
+    }
+
     try {
       await loginWithWallet();
       navigate("/dashboard");
@@ -29,13 +34,18 @@ export default function Navbar() {
   return (
     <nav
       style={{
-        padding: "16px 24px",
+        padding: "14px 18px",
         borderBottom: "1px solid #e5e7eb",
-        marginBottom: "32px",
+        marginBottom: "20px",
         display: "flex",
         justifyContent: "space-between",
         alignItems: "center",
-        gap: "16px"
+        gap: "12px",
+        background: "rgba(255,255,255,0.82)",
+        backdropFilter: "blur(6px)",
+        position: "sticky",
+        top: 0,
+        zIndex: 10
       }}
     >
       <div style={{ display: "flex", gap: "16px", alignItems: "center" }}>
@@ -68,7 +78,7 @@ export default function Navbar() {
           <button
             type="button"
             onClick={handleLogin}
-            disabled={authenticating || !hasEthereumProvider}
+            disabled={authenticating}
             style={{
               padding: "8px 12px",
               borderRadius: "8px",
@@ -78,7 +88,7 @@ export default function Navbar() {
               cursor: "pointer"
             }}
           >
-            {authenticating ? "Signing..." : "Connect Wallet"}
+            {authenticating ? "Signing..." : hasEthereumProvider ? "Connect Wallet" : "Install MetaMask"}
           </button>
         )}
       </div>

@@ -8,23 +8,25 @@ import ProtectedRoute from "./components/ProtectedRoute";
 
 function App() {
   return (
-    <>
+    <div className="app-shell">
       <Navbar />
-      <Routes>
-        <Route path="/" element={<Home />} />
-        <Route
-          path="/dashboard"
-          element={(
-            <ProtectedRoute>
-              <Dashboard />
-            </ProtectedRoute>
-          )}
-        />
-        <Route path="/explorer" element={<Explorer />} />
-        <Route path="/verify" element={<Verify />} />
-        <Route path="/verify/:hash" element={<Verify />} />
-      </Routes>
-    </>
+      <main className="app-main">
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route
+            path="/dashboard"
+            element={(
+              <ProtectedRoute>
+                <Dashboard />
+              </ProtectedRoute>
+            )}
+          />
+          <Route path="/explorer" element={<Explorer />} />
+          <Route path="/verify" element={<Verify />} />
+          <Route path="/verify/:hash" element={<Verify />} />
+        </Routes>
+      </main>
+    </div>
   );
 }
 

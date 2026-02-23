@@ -1,9 +1,11 @@
-import { JsonWebTokenError, TokenExpiredError } from "jsonwebtoken";
+import jwt from "jsonwebtoken";
 import { ZodError } from "zod";
 import { Prisma } from "@prisma/client";
 import { captureException } from "../services/sentry.js";
 import { logger } from "../config/logger.js";
 import { AppError } from "../utils/app-error.js";
+
+const { JsonWebTokenError, TokenExpiredError } = jwt;
 
 function toAppError(error) {
   if (error instanceof AppError) {

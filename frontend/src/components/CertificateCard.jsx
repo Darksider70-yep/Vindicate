@@ -1,5 +1,3 @@
-import React from "react";
-
 export default function CertificateCard({ name, skill, issuer, ipfsHash }) {
   return (
     <div style={{

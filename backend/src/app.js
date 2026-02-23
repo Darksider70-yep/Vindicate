@@ -73,6 +73,7 @@ export function createApp() {
   app.use(express.json({ limit: env.JSON_BODY_LIMIT }));
   app.use(metricsMiddleware);
 
+  app.use("/api", routes);
   app.use(routes);
   app.use(notFound);
   app.use(errorHandler);

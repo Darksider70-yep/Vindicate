@@ -13,8 +13,9 @@ export default function Explorer() {
   }, []);
 
   return (
-    <div>
-      <h1 className="text-2xl font-bold mb-4">Credential Explorer</h1>
+    <div className="surface" style={{ padding: "18px" }}>
+      <h1 style={{ marginTop: 0, marginBottom: "10px", fontSize: "1.8rem" }}>Credential Explorer</h1>
+      <p style={{ marginTop: 0, color: "#475569" }}>Public sample listing for verified credentials.</p>
       <ExplorerView credentials={credentials} />
     </div>
   );
