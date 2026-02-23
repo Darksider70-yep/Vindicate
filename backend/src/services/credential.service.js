@@ -2,8 +2,14 @@ import { ethers } from "ethers";
 import { prisma } from "../db/prisma.js";
 import { ROLES } from "../constants/roles.js";
 import { blockchainService } from "./blockchain/blockchain.service.js";
-import { ipfsService } from "./ipfs/ipfs.service.js";
+import { ipfsService } from "./ipfs.service.js";
 import { AppError } from "../utils/app-error.js";
+import {
+  assertHashNotBlacklisted,
+  blacklistHash
+} from "./hash-blacklist.service.js";
+import { evaluateCredentialIntegrity } from "./integrity.service.js";
+import { generateVerificationQrCode } from "./qr.service.js";
 
 function normalizeAddress(address) {
   if (!ethers.isAddress(address)) {
@@ -12,8 +18,21 @@ function normalizeAddress(address) {
   return ethers.getAddress(address).toLowerCase();
 }
 
+function parseBase64File(fileBase64) {
+  try {
+    const normalized = fileBase64.replace(/^data:.*;base64,/, "");
+    const buffer = Buffer.from(normalized, "base64");
+    if (buffer.length === 0) {
+      throw new Error("empty");
+    }
+    return buffer;
+  } catch (error) {
+    throw new AppError(400, "INVALID_FILE", "Could not parse base64 file payload", undefined, error);
+  }
+}
+
 async function assertIssuanceAllowed(authUser, institutionId) {
-  if (authUser.role === ROLES.ADMIN) {
+  if (authUser.role === ROLES.SUPER_ADMIN) {
     return;
   }
 
@@ -24,12 +43,13 @@ async function assertIssuanceAllowed(authUser, institutionId) {
     return;
   }
 
-  if (authUser.role === ROLES.ISSUER) {
+  if (authUser.role === ROLES.VERIFIED_ISSUER) {
     const issuerRecord = await prisma.issuer.findFirst({
       where: {
         userId: authUser.sub,
         institutionId,
-        status: "ACTIVE"
+        status: "ACTIVE",
+        approved: true
       }
     });
 
@@ -46,11 +66,16 @@ export async function issueCredential({
   authUser,
   studentAddress,
   institutionId,
-  credential,
+  fileName,
+  mimeType,
+  fileBase64,
+  metadata = {},
   encrypt = false
 }) {
   const issuerUserId = authUser.sub;
   const normalizedStudentAddress = normalizeAddress(studentAddress);
+  const fileBuffer = parseBase64File(fileBase64);
+  const derivedHashes = ipfsService.deriveHashes(fileBuffer);
 
   const [issuerUser, institution] = await Promise.all([
     prisma.user.findUnique({ where: { id: issuerUserId } }),
@@ -65,26 +90,52 @@ export async function issueCredential({
   }
 
   await assertIssuanceAllowed(authUser, institutionId);
+  await assertHashNotBlacklisted(derivedHashes.credentialHash);
 
-  const payload = {
-    studentAddress: normalizedStudentAddress,
-    institutionId,
-    issuerAddress: issuerUser.walletAddress,
-    credential
-  };
-
-  const { cid, credentialHash, encrypted } = await ipfsService.uploadCredentialPayload(payload, {
-    encrypt
+  const duplicateCredential = await prisma.credential.findFirst({
+    where: {
+      OR: [
+        { credentialHash: derivedHashes.credentialHash },
+        { fileChecksum: derivedHashes.fileChecksum }
+      ]
+    }
   });
-
-  const existingCredential = await prisma.credential.findUnique({
-    where: { credentialHash }
-  });
-  if (existingCredential) {
-    throw new AppError(409, "DUPLICATE_CREDENTIAL", "Credential hash already exists");
+  if (duplicateCredential) {
+    throw new AppError(409, "DUPLICATE_CREDENTIAL", "Duplicate credential document detected");
   }
 
-  const chainResult = await blockchainService.issueCredential(normalizedStudentAddress, credentialHash);
+  const existingOnChain = await blockchainService.getCredentialByHash(derivedHashes.credentialHash);
+  if (existingOnChain) {
+    throw new AppError(409, "DUPLICATE_CREDENTIAL", "Credential hash already exists on-chain");
+  }
+
+  let uploadResult;
+  let chainResult;
+
+  uploadResult = await ipfsService.uploadFile({
+    fileBuffer,
+    fileName,
+    mimeType,
+    encrypt,
+    expectedCredentialHash: derivedHashes.credentialHash,
+    expectedFileChecksum: derivedHashes.fileChecksum
+  });
+
+  try {
+    chainResult = await blockchainService.issueCredential(
+      normalizedStudentAddress,
+      uploadResult.credentialHash
+    );
+  } catch (error) {
+    await ipfsService.unpinCID(uploadResult.cid, { bestEffort: true });
+    throw new AppError(
+      502,
+      "ISSUANCE_BLOCKCHAIN_FAILED",
+      "Blockchain commit failed after IPFS upload; CID unpinned",
+      { cid: uploadResult.cid },
+      error
+    );
+  }
   const studentUser = await prisma.user.upsert({
     where: { walletAddress: normalizedStudentAddress },
     create: {
@@ -97,30 +148,94 @@ export async function issueCredential({
     }
   });
 
-  const credentialRecord = await prisma.credential.create({
-    data: {
-      credentialId: BigInt(chainResult.credentialId),
-      credentialHash,
-      studentId: studentUser.id,
-      issuerId: issuerUser.id,
-      institutionId,
-      metadataCid: cid,
-      txHash: chainResult.txHash,
-      issuedAt: chainResult.issuedAt
-    },
-    include: {
-      institution: true,
-      student: true,
-      issuer: true
+  let credentialRecord;
+  try {
+    credentialRecord = await prisma.$transaction(async (tx) => {
+      const createdCredential = await tx.credential.create({
+        data: {
+          credentialId: BigInt(chainResult.credentialId),
+          studentId: studentUser.id,
+          issuerId: issuerUser.id,
+          institutionId,
+          studentAddress: normalizedStudentAddress,
+          issuerAddress: issuerUser.walletAddress,
+          credentialHash: uploadResult.credentialHash,
+          ipfsCid: uploadResult.cid,
+          fileChecksum: uploadResult.fileChecksum,
+          fileName: fileName,
+          mimeType: mimeType,
+          metadata: metadata,
+          encrypted: uploadResult.encrypted,
+          status: "ACTIVE",
+          txHash: chainResult.txHash,
+          issuedAt: chainResult.issuedAt
+        }
+      });
+
+      if (uploadResult.encrypted && uploadResult.encryptionMetadata) {
+        await tx.credentialKey.create({
+          data: {
+            credentialId: createdCredential.id,
+            keyVersion: uploadResult.encryptionMetadata.keyVersion,
+            cipherAlgorithm: uploadResult.encryptionMetadata.cipherAlgorithm,
+            keyWrapAlgorithm: uploadResult.encryptionMetadata.keyWrapAlgorithm,
+            wrappedDataKey: uploadResult.encryptionMetadata.wrappedDataKey,
+            wrapIv: uploadResult.encryptionMetadata.wrapIv,
+            wrapTag: uploadResult.encryptionMetadata.wrapTag,
+            dataIv: uploadResult.encryptionMetadata.dataIv,
+            dataTag: uploadResult.encryptionMetadata.dataTag
+          }
+        });
+      }
+
+      return tx.credential.findUnique({
+        where: { id: createdCredential.id },
+        include: {
+          institution: true,
+          student: true,
+          issuer: true,
+          credentialKey: true
+        }
+      });
+    });
+  } catch (error) {
+    let revokeCompensation = null;
+    let unpinCompensation = null;
+
+    try {
+      revokeCompensation = await blockchainService.revokeCredential(chainResult.credentialId);
+    } catch (revokeError) {
+      revokeCompensation = { error: revokeError.message };
     }
-  });
+
+    try {
+      unpinCompensation = await ipfsService.unpinCID(uploadResult.cid, { bestEffort: true });
+    } catch (unpinError) {
+      unpinCompensation = { error: unpinError.message };
+    }
+
+    throw new AppError(
+      500,
+      "ISSUANCE_DB_FAILED",
+      "Database commit failed after blockchain success; compensation executed",
+      {
+        txHash: chainResult.txHash,
+        credentialId: chainResult.credentialId,
+        cid: uploadResult.cid,
+        revokeCompensation,
+        unpinCompensation
+      },
+      error
+    );
+  }
 
   return {
     credential: credentialRecord,
     blockchain: chainResult,
     ipfs: {
-      cid,
-      encrypted
+      cid: uploadResult.cid,
+      encrypted: uploadResult.encrypted,
+      pinnedNodes: uploadResult.pinnedNodes
     }
   };
 }
@@ -138,25 +253,27 @@ export async function revokeCredential({ authUser, credentialHash, reason }) {
     throw new AppError(404, "CREDENTIAL_NOT_FOUND", "Credential not found");
   }
 
-  if (credential.revoked) {
+  if (credential.status === "REVOKED") {
     throw new AppError(409, "CREDENTIAL_ALREADY_REVOKED", "Credential already revoked");
   }
 
   const canRevoke =
-    authUser.role === ROLES.ADMIN ||
-    authUser.role === ROLES.INSTITUTION_ADMIN ||
+    authUser.role === ROLES.SUPER_ADMIN ||
+    (authUser.role === ROLES.INSTITUTION_ADMIN &&
+      Boolean(authUser.institutionId) &&
+      authUser.institutionId === credential.institutionId) ||
     credential.issuerId === authUser.sub;
 
   if (!canRevoke) {
     throw new AppError(403, "FORBIDDEN", "Not authorized to revoke this credential");
   }
 
-  const chainResult = await blockchainService.revokeCredential(Number(credential.credentialId));
+  const chainResult = await blockchainService.revokeCredential(credential.credentialId);
 
   const revokedCredential = await prisma.$transaction(async (tx) => {
     const updatedCredential = await tx.credential.update({
       where: { id: credential.id },
-      data: { revoked: true }
+      data: { status: "REVOKED" }
     });
 
     await tx.revocation.create({
@@ -180,13 +297,16 @@ export async function revokeCredential({ authUser, credentialHash, reason }) {
 
 export async function getCredentialByHash(credentialHash) {
   const normalizedHash = credentialHash.toLowerCase();
+  await assertHashNotBlacklisted(normalizedHash);
+
   const credentialRecord = await prisma.credential.findUnique({
     where: { credentialHash: normalizedHash },
     include: {
       institution: true,
       student: true,
       issuer: true,
-      revocation: true
+      revocation: true,
+      credentialKey: true
     }
   });
 
@@ -195,23 +315,59 @@ export async function getCredentialByHash(credentialHash) {
     throw new AppError(404, "CREDENTIAL_NOT_FOUND", "Credential not found");
   }
 
-  let payload = null;
-  let ipfsIntegrity = null;
-  if (credentialRecord?.metadataCid) {
-    const fetchedPayload = await ipfsService.fetchCredentialPayload(credentialRecord.metadataCid);
-    payload = fetchedPayload.payload;
-    ipfsIntegrity = {
-      computedHash: fetchedPayload.computedHash,
-      matchesOnChainHash: fetchedPayload.computedHash === normalizedHash
-    };
+  if (!credentialRecord || !onChain) {
+    throw new AppError(409, "INTEGRITY_VIOLATION", "Credential missing from either DB or blockchain");
+  }
+
+  const ipfsVerification = await ipfsService.verifyCID(credentialRecord.ipfsCid, {
+    expectedCredentialHash: credentialRecord.credentialHash,
+    expectedFileChecksum: credentialRecord.fileChecksum,
+    encrypted: credentialRecord.encrypted,
+    encryptionMetadata: credentialRecord.credentialKey
+      ? {
+          keyVersion: credentialRecord.credentialKey.keyVersion,
+          cipherAlgorithm: credentialRecord.credentialKey.cipherAlgorithm,
+          keyWrapAlgorithm: credentialRecord.credentialKey.keyWrapAlgorithm,
+          wrappedDataKey: credentialRecord.credentialKey.wrappedDataKey,
+          wrapIv: credentialRecord.credentialKey.wrapIv,
+          wrapTag: credentialRecord.credentialKey.wrapTag,
+          dataIv: credentialRecord.credentialKey.dataIv,
+          dataTag: credentialRecord.credentialKey.dataTag
+        }
+      : null
+  });
+
+  const integrity = evaluateCredentialIntegrity({
+    blockchainRecord: onChain,
+    dbRecord: credentialRecord,
+    ipfsVerification
+  });
+
+  if (!integrity.passed) {
+    throw new AppError(409, "INTEGRITY_VIOLATION", "Credential integrity verification failed", {
+      integrity,
+      onChain,
+      dbHash: credentialRecord.credentialHash,
+      dbCid: credentialRecord.ipfsCid
+    });
   }
 
   return {
     credential: credentialRecord,
     onChain,
-    payload,
-    ipfsIntegrity
+    ipfsVerification,
+    integrity
   };
+}
+
+export async function getCredentialQr(credentialHash) {
+  const normalizedHash = credentialHash.toLowerCase();
+  await getCredentialByHash(normalizedHash);
+  return generateVerificationQrCode(normalizedHash);
+}
+
+export async function blacklistCredentialHash({ actorUserId, credentialHash, reason }) {
+  return blacklistHash(credentialHash, reason, actorUserId);
 }
 
 export async function getCredentialsByStudent(studentAddress) {
@@ -219,11 +375,12 @@ export async function getCredentialsByStudent(studentAddress) {
   const student = await prisma.user.findUnique({
     where: { walletAddress: normalizedAddress },
     include: {
-      credentials: {
+      studentCredentials: {
         include: {
           institution: true,
           issuer: true,
-          revocation: true
+          revocation: true,
+          credentialKey: true
         },
         orderBy: { createdAt: "desc" }
       }

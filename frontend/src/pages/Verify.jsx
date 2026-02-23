@@ -1,30 +1,43 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useParams } from "react-router-dom";
 import { verifyCredential } from "../utils/api";
 
-function Verify() {
-  const [hash, setHash] = useState("");
+export default function Verify() {
+  const { hash: routeHash } = useParams();
+  const [hash, setHash] = useState(routeHash || "");
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
 
-  const handleVerify = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    setResult(null);
+  useEffect(() => {
+    if (routeHash) {
+      setHash(routeHash);
+    }
+  }, [routeHash]);
 
+  const handleVerify = async (event) => {
+    event.preventDefault();
+    setResult(null);
+    setLoading(true);
     try {
-      const res = await verifyCredential(hash);
-      setResult(res);
-    } catch (err) {
-      setResult({ valid: false, error: err.message });
+      const payload = await verifyCredential(hash);
+      setResult(payload);
+    } catch (error) {
+      setResult({
+        error: {
+          message: error.message
+        }
+      });
     } finally {
       setLoading(false);
     }
   };
 
+  const integrityPassed = Boolean(result?.payload?.integrity?.passed);
+
   return (
     <div
       style={{
-        maxWidth: "600px",
+        maxWidth: "760px",
         margin: "40px auto",
         background: "white",
         padding: "24px",
@@ -32,15 +45,15 @@ function Verify() {
         boxShadow: "0 10px 25px rgba(0,0,0,0.05)"
       }}
     >
-      <h2 style={{ marginBottom: "16px" }}>Verify Credential</h2>
-
+      <h2 style={{ marginTop: 0 }}>Verify Credential</h2>
       <form onSubmit={handleVerify}>
-        <label style={{ fontWeight: 500 }}>IPFS Hash</label>
+        <label htmlFor="hash" style={{ fontWeight: 600 }}>Credential Hash</label>
         <input
+          id="hash"
           type="text"
           value={hash}
-          onChange={(e) => setHash(e.target.value)}
-          placeholder="Enter IPFS Hash"
+          onChange={(event) => setHash(event.target.value)}
+          placeholder="0x..."
           style={{
             width: "100%",
             padding: "10px",
@@ -67,90 +80,53 @@ function Verify() {
         </button>
       </form>
 
-      {result && (
-        <div style={{ marginTop: "24px" }}>
-          {result.valid ? (
-            /* VALID RESULT */
-            <div
-              style={{
-                border: "1px solid #22c55e",
-                background: "#f0fdf4",
-                padding: "16px",
-                borderRadius: "8px"
-              }}
-            >
-              <p style={{ color: "#15803d", fontWeight: 600 }}>
-                ✔ Credential Verified
-              </p>
+      {result && !result.error && (
+        <div
+          style={{
+            marginTop: "18px",
+            border: integrityPassed ? "1px solid #22c55e" : "1px solid #ef4444",
+            background: integrityPassed ? "#f0fdf4" : "#fef2f2",
+            borderRadius: "8px",
+            padding: "14px"
+          }}
+        >
+          <p style={{ marginTop: 0, fontWeight: 700, color: integrityPassed ? "#166534" : "#991b1b" }}>
+            {integrityPassed ? "Integrity Check Passed" : "Integrity Violation"}
+          </p>
+          <p style={{ margin: "4px 0" }}>Signed at: {result.signedAt}</p>
+          <p style={{ margin: "4px 0" }}>Signature: {result.signature}</p>
+          <p style={{ margin: "4px 0" }}>Algorithm: {result.algorithm}</p>
+          <pre
+            style={{
+              marginTop: "10px",
+              maxHeight: "360px",
+              overflow: "auto",
+              background: "white",
+              border: "1px solid #e5e7eb",
+              borderRadius: "6px",
+              padding: "10px",
+              fontSize: "0.8rem"
+            }}
+          >
+            {JSON.stringify(result.payload, null, 2)}
+          </pre>
+        </div>
+      )}
 
-              <p style={{ fontSize: "0.9rem", marginTop: "8px" }}>
-                <b>IPFS Hash:</b>{" "}
-                <span style={{ fontFamily: "monospace" }}>
-                  {result.hash}
-                </span>
-              </p>
-
-              {/* Certificate data */}
-              {result.fileData && (
-                <div
-                  style={{
-                    marginTop: "16px",
-                    padding: "12px",
-                    border: "1px solid #d1d5db",
-                    borderRadius: "6px",
-                    background: "white"
-                  }}
-                >
-                  <h4>Certificate Data</h4>
-                  <pre style={{ whiteSpace: "pre-wrap", fontSize: "0.85rem" }}>
-                    {typeof result.fileData === "string"
-                      ? result.fileData
-                      : JSON.stringify(result.fileData, null, 2)}
-                  </pre>
-                </div>
-              )}
-
-              {/* File preview (PDF/Image) */}
-              {result.fileData &&
-                typeof result.fileData === "string" &&
-                result.fileData.startsWith("data:") && (
-                  <div style={{ marginTop: "20px" }}>
-                    <h4>Certificate Preview</h4>
-                    <iframe
-                      src={result.fileData}
-                      width="100%"
-                      height="400px"
-                      title="certificate-preview"
-                      style={{ borderRadius: "6px", border: "1px solid #e5e7eb" }}
-                    />
-                  </div>
-                )}
-            </div>
-          ) : (
-            /* INVALID RESULT */
-            <div
-              style={{
-                border: "1px solid #ef4444",
-                background: "#fef2f2",
-                padding: "16px",
-                borderRadius: "8px"
-              }}
-            >
-              <p style={{ color: "#b91c1c", fontWeight: 600 }}>
-                ✖ Credential Not Found or Invalid
-              </p>
-            </div>
-          )}
-
-          {result.error && (
-            <p style={{ color: "red", marginTop: "8px" }}>
-              Error: {result.error}
-            </p>
-          )}
+      {result?.error && (
+        <div
+          style={{
+            marginTop: "18px",
+            border: "1px solid #ef4444",
+            background: "#fef2f2",
+            borderRadius: "8px",
+            padding: "12px",
+            color: "#991b1b"
+          }}
+        >
+          {result.error.message}
         </div>
       )}
     </div>
   );
 }
-
-export default Verify;

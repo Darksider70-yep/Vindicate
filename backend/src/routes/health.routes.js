@@ -2,7 +2,7 @@ import { Router } from "express";
 import { metricsHandler } from "../middlewares/metrics.js";
 import { assertDatabaseConnectivity } from "../db/prisma.js";
 import { blockchainService } from "../services/blockchain/blockchain.service.js";
-import { ipfsService } from "../services/ipfs/ipfs.service.js";
+import { ipfsService } from "../services/ipfs.service.js";
 import { env } from "../config/env.js";
 
 const router = Router();

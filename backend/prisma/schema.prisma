@@ -1,0 +1,301 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  SUPER_ADMIN
+  INSTITUTION_ADMIN
+  VERIFIED_ISSUER
+  STUDENT
+  VERIFIER
+}
+
+enum IssuerStatus {
+  PENDING
+  ACTIVE
+  REVOKED
+  REJECTED
+}
+
+enum CredentialStatus {
+  ACTIVE
+  REVOKED
+}
+
+enum InstitutionStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum WalletRotationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model User {
+  id                     String                  @id @default(cuid())
+  walletAddress          String                  @unique @db.VarChar(42)
+  role                   Role                    @default(STUDENT)
+  institutionId          String?
+  institution            Institution?            @relation("InstitutionUsers", fields: [institutionId], references: [id], onDelete: SetNull)
+  issuerProfile          Issuer?                 @relation("IssuerUser")
+  approvedIssuers        Issuer[]                @relation("IssuerApprovedBy")
+  studentCredentials     Credential[]            @relation("CredentialStudent")
+  issuedCredentials      Credential[]            @relation("CredentialIssuer")
+  revocations            Revocation[]            @relation("RevocationActor")
+  hashBlacklistItems     HashBlacklist[]         @relation("HashBlacklistActor")
+  authSessions           AuthSession[]
+  institutionRequests    Institution[]           @relation("InstitutionRequestedBy")
+  institutionReviews     Institution[]           @relation("InstitutionReviewedBy")
+  tokenBlocklistItems    TokenBlocklist[]
+  walletRotationSubjects WalletRotationRequest[] @relation("WalletRotationSubject")
+  walletRotationRequests WalletRotationRequest[] @relation("WalletRotationRequestedBy")
+  walletRotationReviews  WalletRotationRequest[] @relation("WalletRotationReviewedBy")
+  createdAt              DateTime                @default(now())
+  updatedAt              DateTime                @updatedAt
+
+  @@index([walletAddress])
+  @@index([institutionId])
+  @@map("users")
+}
+
+model Institution {
+  id            String            @id @default(cuid())
+  name          String            @db.VarChar(255)
+  code          String            @unique @db.VarChar(64)
+  status        InstitutionStatus @default(PENDING)
+  verified      Boolean           @default(false)
+  adminWallet   String?           @unique @map("admin_wallet") @db.VarChar(42)
+  requestedById String?           @map("requested_by_id")
+  reviewedById  String?           @map("reviewed_by_id")
+  reviewNotes   String?           @map("review_notes") @db.VarChar(512)
+  users         User[]            @relation("InstitutionUsers")
+  issuers       Issuer[]
+  credentials   Credential[]
+  requestedBy   User?             @relation("InstitutionRequestedBy", fields: [requestedById], references: [id], onDelete: SetNull)
+  reviewedBy    User?             @relation("InstitutionReviewedBy", fields: [reviewedById], references: [id], onDelete: SetNull)
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  @@index([status])
+  @@index([verified])
+  @@index([adminWallet])
+  @@index([code])
+  @@map("institutions")
+}
+
+model Issuer {
+  id            String       @id @default(cuid())
+  userId        String       @unique
+  walletAddress String       @unique @map("wallet_address") @db.VarChar(42)
+  institutionId String
+  approved      Boolean      @default(false)
+  approvedById  String?
+  requestedAt   DateTime     @default(now()) @map("requested_at")
+  approvedAt    DateTime?    @map("approved_at")
+  status        IssuerStatus @default(PENDING)
+  revokedAt     DateTime?    @map("revoked_at")
+  reviewNotes   String?      @map("review_notes") @db.VarChar(512)
+  user          User         @relation("IssuerUser", fields: [userId], references: [id], onDelete: Restrict)
+  institution   Institution  @relation(fields: [institutionId], references: [id], onDelete: Restrict)
+  approvedBy    User?        @relation("IssuerApprovedBy", fields: [approvedById], references: [id], onDelete: SetNull)
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  @@index([walletAddress])
+  @@index([institutionId])
+  @@index([status])
+  @@index([approved])
+  @@map("issuers")
+}
+
+model Credential {
+  id             String           @id @default(cuid())
+  credentialId   BigInt           @unique @map("credential_id")
+  studentId      String           @map("student_id")
+  issuerId       String           @map("issuer_id")
+  institutionId  String           @map("institution_id")
+  studentAddress String           @map("student_address") @db.VarChar(42)
+  issuerAddress  String           @map("issuer_address") @db.VarChar(42)
+  credentialHash String           @unique @map("credential_hash") @db.VarChar(66)
+  ipfsCid        String           @map("ipfs_cid") @db.VarChar(255)
+  fileChecksum   String           @map("file_checksum") @db.VarChar(64)
+  fileName       String           @map("file_name") @db.VarChar(255)
+  mimeType       String           @map("mime_type") @db.VarChar(128)
+  metadata       Json?            @map("metadata")
+  encrypted      Boolean          @default(false)
+  status         CredentialStatus @default(ACTIVE)
+  txHash         String           @map("tx_hash") @db.VarChar(66)
+  issuedAt       DateTime         @map("issued_at")
+  student        User             @relation("CredentialStudent", fields: [studentId], references: [id], onDelete: Restrict)
+  issuer         User             @relation("CredentialIssuer", fields: [issuerId], references: [id], onDelete: Restrict)
+  institution    Institution      @relation(fields: [institutionId], references: [id], onDelete: Restrict)
+  credentialKey  CredentialKey?
+  revocation     Revocation?
+  createdAt      DateTime         @default(now()) @map("created_at")
+  updatedAt      DateTime         @updatedAt @map("updated_at")
+
+  @@index([credentialHash])
+  @@index([fileChecksum])
+  @@index([ipfsCid])
+  @@index([studentAddress])
+  @@index([issuerAddress])
+  @@index([status])
+  @@index([studentId])
+  @@index([issuerId])
+  @@index([institutionId])
+  @@index([issuedAt])
+  @@map("credentials")
+}
+
+model CredentialKey {
+  id               String     @id @default(cuid())
+  credentialId     String     @unique @map("credential_id")
+  keyVersion       Int        @default(1) @map("key_version")
+  cipherAlgorithm  String     @map("cipher_algorithm") @db.VarChar(64)
+  keyWrapAlgorithm String     @map("key_wrap_algorithm") @db.VarChar(64)
+  wrappedDataKey   String     @map("wrapped_data_key") @db.VarChar(1024)
+  wrapIv           String     @map("wrap_iv") @db.VarChar(64)
+  wrapTag          String     @map("wrap_tag") @db.VarChar(64)
+  dataIv           String     @map("data_iv") @db.VarChar(64)
+  dataTag          String     @map("data_tag") @db.VarChar(64)
+  credential       Credential @relation(fields: [credentialId], references: [id], onDelete: Restrict)
+  createdAt        DateTime   @default(now()) @map("created_at")
+  updatedAt        DateTime   @updatedAt @map("updated_at")
+
+  @@map("credential_keys")
+}
+
+model Revocation {
+  id           String     @id @default(cuid())
+  credentialId String     @unique
+  revokedById  String
+  reason       String     @db.VarChar(512)
+  txHash       String     @db.VarChar(66)
+  revokedAt    DateTime
+  credential   Credential @relation(fields: [credentialId], references: [id], onDelete: Restrict)
+  revokedBy    User       @relation("RevocationActor", fields: [revokedById], references: [id], onDelete: Restrict)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  @@index([revokedById])
+  @@index([revokedAt])
+  @@map("revocations")
+}
+
+model HashBlacklist {
+  id             String   @id @default(cuid())
+  credentialHash String   @unique @map("credential_hash") @db.VarChar(66)
+  reason         String   @db.VarChar(512)
+  actorUserId    String?  @map("actor_user_id")
+  actorUser      User?    @relation("HashBlacklistActor", fields: [actorUserId], references: [id], onDelete: SetNull)
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  @@index([credentialHash])
+  @@map("hash_blacklist")
+}
+
+model AuthNonce {
+  id            String    @id @default(cuid())
+  walletAddress String    @db.VarChar(42)
+  nonce         String    @unique @db.VarChar(128)
+  ipAddress     String?   @map("ip_address") @db.VarChar(64)
+  attempts      Int       @default(0)
+  expiresAt     DateTime
+  usedAt        DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([walletAddress])
+  @@index([expiresAt])
+  @@map("auth_nonces")
+}
+
+model AuthSession {
+  id            String         @id @default(cuid())
+  userId        String         @map("user_id")
+  walletAddress String         @map("wallet_address") @db.VarChar(42)
+  chainId       Int            @map("chain_id")
+  userAgent     String?        @map("user_agent") @db.VarChar(512)
+  ipAddress     String?        @map("ip_address") @db.VarChar(64)
+  csrfTokenHash String?        @map("csrf_token_hash") @db.VarChar(128)
+  expiresAt     DateTime       @map("expires_at")
+  lastSeenAt    DateTime       @default(now()) @map("last_seen_at")
+  revokedAt     DateTime?      @map("revoked_at")
+  revokeReason  String?        @map("revoke_reason") @db.VarChar(255)
+  user          User           @relation(fields: [userId], references: [id], onDelete: Restrict)
+  refreshTokens RefreshToken[]
+  createdAt     DateTime       @default(now()) @map("created_at")
+  updatedAt     DateTime       @updatedAt @map("updated_at")
+
+  @@index([userId])
+  @@index([walletAddress])
+  @@index([expiresAt])
+  @@index([revokedAt])
+  @@map("auth_sessions")
+}
+
+model RefreshToken {
+  id                String         @id @default(cuid())
+  sessionId         String         @map("session_id")
+  tokenHash         String         @unique @map("token_hash") @db.VarChar(128)
+  expiresAt         DateTime       @map("expires_at")
+  revokedAt         DateTime?      @map("revoked_at")
+  replacedByTokenId String?        @unique @map("replaced_by_token_id")
+  session           AuthSession    @relation(fields: [sessionId], references: [id], onDelete: Restrict)
+  replacedBy        RefreshToken?  @relation("RefreshTokenReplacement", fields: [replacedByTokenId], references: [id], onDelete: SetNull)
+  replaces          RefreshToken[] @relation("RefreshTokenReplacement")
+  createdAt         DateTime       @default(now()) @map("created_at")
+  updatedAt         DateTime       @updatedAt @map("updated_at")
+
+  @@index([sessionId])
+  @@index([expiresAt])
+  @@index([revokedAt])
+  @@map("refresh_tokens")
+}
+
+model TokenBlocklist {
+  id        String   @id @default(cuid())
+  jti       String   @unique @db.VarChar(64)
+  userId    String?  @map("user_id")
+  reason    String   @db.VarChar(255)
+  expiresAt DateTime @map("expires_at")
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([expiresAt])
+  @@index([userId])
+  @@map("token_blocklist")
+}
+
+model WalletRotationRequest {
+  id               String               @id @default(cuid())
+  userId           String               @map("user_id")
+  oldWalletAddress String               @map("old_wallet_address") @db.VarChar(42)
+  newWalletAddress String               @map("new_wallet_address") @db.VarChar(42)
+  status           WalletRotationStatus @default(PENDING)
+  reason           String               @db.VarChar(512)
+  requestedById    String               @map("requested_by_id")
+  reviewedById     String?              @map("reviewed_by_id")
+  reviewNote       String?              @map("review_note") @db.VarChar(512)
+  reviewedAt       DateTime?            @map("reviewed_at")
+  user             User                 @relation("WalletRotationSubject", fields: [userId], references: [id], onDelete: Restrict)
+  requestedBy      User                 @relation("WalletRotationRequestedBy", fields: [requestedById], references: [id], onDelete: Restrict)
+  reviewedBy       User?                @relation("WalletRotationReviewedBy", fields: [reviewedById], references: [id], onDelete: SetNull)
+  createdAt        DateTime             @default(now()) @map("created_at")
+  updatedAt        DateTime             @updatedAt @map("updated_at")
+
+  @@index([userId])
+  @@index([newWalletAddress])
+  @@index([status])
+  @@map("wallet_rotation_requests")
+}

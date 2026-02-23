@@ -3,7 +3,7 @@ import { env } from "./config/env.js";
 import { logger } from "./config/logger.js";
 import { prisma, assertDatabaseConnectivity } from "./db/prisma.js";
 import { blockchainService } from "./services/blockchain/blockchain.service.js";
-import { ipfsService } from "./services/ipfs/ipfs.service.js";
+import { ipfsService } from "./services/ipfs.service.js";
 import { initSentry } from "./services/sentry.js";
 
 async function bootstrap() {

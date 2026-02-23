@@ -1,6 +1,9 @@
 import crypto from "node:crypto";
 
 function sortValue(value) {
+  if (typeof value === "bigint") {
+    return value.toString();
+  }
   if (Array.isArray(value)) {
     return value.map(sortValue);
   }

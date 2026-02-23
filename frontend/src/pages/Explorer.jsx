@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import ExplorerView from "../components/ExplorerView";
 
 export default function Explorer() {

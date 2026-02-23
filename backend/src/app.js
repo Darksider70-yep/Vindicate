@@ -3,12 +3,14 @@ import express from "express";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
 import pinoHttp from "pino-http";
+import cookieParser from "cookie-parser";
 import { env } from "./config/env.js";
 import { logger } from "./config/logger.js";
 import { requestContext } from "./middlewares/request-context.js";
 import { metricsMiddleware } from "./middlewares/metrics.js";
 import { notFound } from "./middlewares/not-found.js";
 import { errorHandler } from "./middlewares/error-handler.js";
+import { AppError } from "./utils/app-error.js";
 import routes from "./routes/index.js";
 
 const corsOptions = {
@@ -21,11 +23,11 @@ const corsOptions = {
       return callback(null, true);
     }
 
-    return callback(new Error("Origin not allowed by CORS policy"));
+    return callback(new AppError(403, "CORS_BLOCKED", "Origin not allowed by CORS policy"));
   },
   credentials: true,
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Authorization", "Content-Type", "X-Request-Id"]
+  allowedHeaders: ["Authorization", "Content-Type", "X-Request-Id", env.CSRF_HEADER_NAME]
 };
 
 const apiRateLimiter = rateLimit({
@@ -61,11 +63,13 @@ export function createApp() {
   const app = express();
 
   app.disable("x-powered-by");
+  app.set("trust proxy", 1);
   app.use(requestContext);
   app.use(httpLogger);
   app.use(helmet());
   app.use(cors(corsOptions));
   app.use(apiRateLimiter);
+  app.use(cookieParser());
   app.use(express.json({ limit: env.JSON_BODY_LIMIT }));
   app.use(metricsMiddleware);
 

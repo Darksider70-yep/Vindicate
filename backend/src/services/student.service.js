@@ -16,7 +16,7 @@ export async function findStudentByAddress(studentAddress) {
     where: { walletAddress: normalizedAddress },
     include: {
       institution: true,
-      credentials: {
+      studentCredentials: {
         include: {
           issuer: true,
           institution: true,

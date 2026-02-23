@@ -1,59 +1,58 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 
 export default function Home() {
+  const { user, authenticating, loginWithWallet, hasEthereumProvider } = useAuth();
+  const navigate = useNavigate();
+
+  const handleLogin = async () => {
+    try {
+      await loginWithWallet();
+      navigate("/dashboard");
+    } catch (error) {
+      window.alert(error.message);
+    }
+  };
+
   return (
     <div
       style={{
         textAlign: "center",
-        maxWidth: "700px",
-        margin: "80px auto"
+        maxWidth: "760px",
+        margin: "70px auto",
+        padding: "0 16px"
       }}
     >
-      <h1 style={{ fontSize: "2.5rem", fontWeight: 700 }}>
-        Vindicate
-      </h1>
-
-      <p style={{ marginTop: "12px", fontSize: "1.1rem", color: "#475569" }}>
-        Verifiable credentials secured on blockchain.
+      <h1 style={{ fontSize: "2.4rem", fontWeight: 700 }}>Vindicate</h1>
+      <p style={{ marginTop: "12px", fontSize: "1.05rem", color: "#475569" }}>
+        Wallet-authenticated trust governance for verifiable blockchain credentials.
       </p>
 
-      <div
-        style={{
-          marginTop: "40px",
-          display: "flex",
-          justifyContent: "center",
-          gap: "16px"
-        }}
-      >
-        <Link to="/dashboard">
-          <button
-            style={{
-              padding: "10px 18px",
-              borderRadius: "6px",
-              border: "1px solid #e5e7eb",
-              background: "white",
-              cursor: "pointer"
-            }}
-          >
-            Issue Credential
-          </button>
-        </Link>
-
-        <Link to="/verify">
-          <button
-            style={{
-              padding: "10px 18px",
-              borderRadius: "6px",
-              background: "#0f172a",
-              color: "white",
-              border: "none",
-              cursor: "pointer"
-            }}
-          >
-            Verify Credential
-          </button>
-        </Link>
-      </div>
+      {!user ? (
+        <button
+          type="button"
+          onClick={handleLogin}
+          disabled={authenticating || !hasEthereumProvider}
+          style={{
+            marginTop: "28px",
+            padding: "11px 18px",
+            borderRadius: "8px",
+            background: "#0f172a",
+            color: "white",
+            border: "none",
+            cursor: "pointer"
+          }}
+        >
+          {authenticating ? "Signing..." : "Sign-In With Ethereum"}
+        </button>
+      ) : (
+        <div style={{ marginTop: "24px" }}>
+          <p>
+            Signed in as <strong>{user.role}</strong>
+          </p>
+          <Link to="/dashboard">Go to dashboard</Link>
+        </div>
+      )}
     </div>
   );
 }

@@ -11,7 +11,13 @@ const router = Router();
 router.get(
   "/:address",
   authenticate,
-  authorize([ROLES.ADMIN, ROLES.INSTITUTION_ADMIN, ROLES.ISSUER, ROLES.VERIFIER]),
+  authorize([
+    ROLES.SUPER_ADMIN,
+    ROLES.INSTITUTION_ADMIN,
+    ROLES.VERIFIED_ISSUER,
+    ROLES.VERIFIER,
+    ROLES.STUDENT
+  ]),
   validate(studentAddressParamSchema, "params"),
   asyncHandler(getStudentByAddress)
 );
