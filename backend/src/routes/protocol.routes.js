@@ -12,6 +12,9 @@ router.get("/meta", (_req, res) => {
       governanceContract: env.PROTOCOL_GOVERNANCE_CONTRACT,
       stakingContract: env.PROTOCOL_STAKING_CONTRACT,
       registryContract: env.PROTOCOL_REGISTRY_CONTRACT,
+      treasuryContract: env.PROTOCOL_TREASURY_CONTRACT,
+      rewardsContract: env.PROTOCOL_REWARDS_CONTRACT,
+      slashingCourtContract: env.PROTOCOL_SLASHING_COURT_CONTRACT,
       apiVersion: "v1",
       timestamp: new Date().toISOString()
     }

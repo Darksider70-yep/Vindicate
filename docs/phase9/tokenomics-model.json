@@ -1,0 +1,49 @@
+{
+  "token": {
+    "name": "Vindicate Governance Token",
+    "symbol": "VGT",
+    "genesis_supply": 1000000000,
+    "decimals": 18
+  },
+  "allocations": [
+    { "bucket": "ecosystem_rewards", "percent": 30.0, "tokens": 300000000, "vesting": "10y linear" },
+    { "bucket": "institution_issuer_bootstrap", "percent": 18.0, "tokens": 180000000, "vesting": "6y linear, 6m cliff" },
+    { "bucket": "dao_treasury_reserve", "percent": 17.0, "tokens": 170000000, "vesting": "treasury controlled" },
+    { "bucket": "core_contributors", "percent": 15.0, "tokens": 150000000, "vesting": "4y linear, 12m cliff" },
+    { "bucket": "investors", "percent": 10.0, "tokens": 100000000, "vesting": "3y linear, 12m cliff" },
+    { "bucket": "developer_grants", "percent": 7.0, "tokens": 70000000, "vesting": "governance milestone based" },
+    { "bucket": "liquidity_bootstrap", "percent": 3.0, "tokens": 30000000, "vesting": "24m managed release" }
+  ],
+  "emission_policy": {
+    "year_1_to_5_max_inflation": 0.02,
+    "year_6_to_10_max_inflation": 0.01,
+    "year_10_plus_max_inflation": 0.005,
+    "gating_conditions": [
+      "verification_volume_growth_yoy >= 15%",
+      "issuer_staking_ratio >= 20% circulating_supply",
+      "dao_vote_participation >= 12% total_voting_power"
+    ]
+  },
+  "deflation_policy": {
+    "protocol_fee_burn_bps": 500,
+    "buyback_activation_condition": "treasury_runway_months > 24",
+    "max_buyback_bps_of_monthly_fees": 1000
+  },
+  "fee_routing_bps": {
+    "rewards": 3500,
+    "grants": 2000,
+    "insurance": 2000,
+    "operations": 2000,
+    "burn": 500
+  },
+  "staking": {
+    "minimum_issuer_bond_vgt": 10000,
+    "unstake_cooldown_days": 14,
+    "reporter_bond_vgt": 250,
+    "slash_penalty_bands": {
+      "minor_misconduct": "5%-15% stake",
+      "major_fraud": "25%-60% stake",
+      "coordinated_fraud": "60%-100% stake + issuer removal"
+    }
+  }
+}

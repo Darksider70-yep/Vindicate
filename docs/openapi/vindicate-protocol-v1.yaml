@@ -146,6 +146,12 @@ components:
               type: [string, 'null']
             registryContract:
               type: [string, 'null']
+            treasuryContract:
+              type: [string, 'null']
+            rewardsContract:
+              type: [string, 'null']
+            slashingCourtContract:
+              type: [string, 'null']
             apiVersion:
               type: string
             timestamp:

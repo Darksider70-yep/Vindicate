@@ -1,0 +1,44 @@
+groups:
+  - name: vindicate-economic-health
+    interval: 5m
+    rules:
+      - record: vindicate:verification_to_issuance_ratio
+        expr: |
+          clamp_min(sum(rate(vindicate_verifications_total[1h])), 1)
+          /
+          clamp_min(sum(rate(vindicate_issuances_total[1h])), 1)
+
+      - alert: VindicateEconomicBubbleSignal
+        expr: |
+          (
+            sum(rate(vindicate_token_transfer_volume_total[1h]))
+            /
+            clamp_min(sum(rate(vindicate_utility_transaction_volume_total[1h])), 1)
+          ) > 6
+        for: 2h
+        labels:
+          severity: warning
+          category: economics
+        annotations:
+          summary: Token velocity decoupling signal
+          description: Transfer velocity materially exceeds utility transaction growth.
+
+      - alert: VindicateGovernanceConcentrationRisk
+        expr: vindicate_governance_top10_voting_power_ratio > 0.55
+        for: 24h
+        labels:
+          severity: high
+          category: governance
+        annotations:
+          summary: Governance concentration risk
+          description: Top 10 voters exceed 55% of voting power for 24h.
+
+      - alert: VindicateIssuerStakeCoverageDrop
+        expr: vindicate_approved_issuer_min_stake_coverage_ratio < 1
+        for: 30m
+        labels:
+          severity: critical
+          category: security
+        annotations:
+          summary: Issuer stake coverage below minimum threshold
+          description: At least one approved issuer is below required stake.

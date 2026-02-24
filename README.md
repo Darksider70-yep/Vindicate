@@ -173,3 +173,9 @@ npx hardhat run scripts/deploy.cjs --network localhost
 - Protocol architecture and VCP spec: `docs/protocol/`
 - OpenAPI protocol stub: `docs/openapi/vindicate-protocol-v1.yaml`
 - Public SDK package: `sdk/vindicate-js`
+
+## Phase 9 Economics
+
+- Economic design index: `docs/phase9/economic-design-phase9.md`
+- Tokenomics model JSON: `docs/phase9/tokenomics-model.json`
+- Economic monitoring alerts: `ops/monitoring/economic-alerts.yml`

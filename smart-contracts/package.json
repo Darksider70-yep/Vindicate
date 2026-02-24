@@ -7,7 +7,8 @@
     "compile": "hardhat compile",
     "test": "hardhat test",
     "deploy:local": "hardhat run scripts/deploy.cjs --network localhost",
-    "deploy:phase8:local": "hardhat run scripts/deploy-phase8.cjs --network localhost"
+    "deploy:phase8:local": "hardhat run scripts/deploy-phase8.cjs --network localhost",
+    "deploy:phase9:local": "hardhat run scripts/deploy-phase9.cjs --network localhost"
   },
   "keywords": [],
   "author": "",
