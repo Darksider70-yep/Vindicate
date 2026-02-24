@@ -1,0 +1,211 @@
+openapi: 3.1.0
+info:
+  title: Vindicate Protocol API
+  version: 1.0.0
+  summary: Public API for credential verification, DID, ZK flows, and protocol metadata.
+servers:
+  - url: https://api.vindicate.example.com
+    description: Production
+  - url: https://api-staging.vindicate.example.com
+    description: Staging
+paths:
+  /api/v1/protocol/meta:
+    get:
+      operationId: getProtocolMetadata
+      summary: Retrieve protocol metadata and governance contract references.
+      responses:
+        '200':
+          description: Protocol metadata payload.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProtocolMetaResponse'
+  /api/v1/protocol/chains:
+    get:
+      operationId: getSupportedChains
+      summary: List supported chain adapters for chain-agnostic anchor verification.
+      responses:
+        '200':
+          description: Supported chain list.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SupportedChainsResponse'
+  /api/v1/credentials/{hash}:
+    get:
+      operationId: verifyCredentialByHash
+      summary: Verify a credential hash against DB, chain, and storage integrity checks.
+      parameters:
+        - name: hash
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: '^0x[0-9a-fA-F]{64}$'
+      responses:
+        '200':
+          description: Verification payload.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CredentialVerificationResponse'
+  /api/v1/vc/{hash}/verify:
+    get:
+      operationId: verifyVcByHash
+      summary: Verify a verifiable credential and anchor consistency.
+      parameters:
+        - name: hash
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: '^0x[0-9a-fA-F]{64}$'
+        - name: requireChainAnchor
+          in: query
+          required: false
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: VC verification result.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VcVerificationResponse'
+  /api/v1/did/resolve:
+    get:
+      operationId: resolveDid
+      summary: Resolve a DID document with optional IPFS integrity verification.
+      parameters:
+        - name: did
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: verifyIpfs
+          in: query
+          required: false
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: DID resolution result.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DidResolutionResponse'
+  /api/v1/zk/challenges:
+    post:
+      operationId: createZkChallenge
+      summary: Create a ZK challenge for credential proof verification.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ZkChallengeCreateRequest'
+      responses:
+        '201':
+          description: Challenge created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ZkChallengeResponse'
+  /api/v1/zk/verify:
+    post:
+      operationId: verifyZkProof
+      summary: Verify a submitted ZK proof against an active challenge.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ZkProofVerifyRequest'
+      responses:
+        '200':
+          description: ZK verification result.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ZkProofVerifyResponse'
+components:
+  schemas:
+    ProtocolMetaResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            protocolName:
+              type: string
+            protocolVersion:
+              type: string
+            governanceContract:
+              type: [string, 'null']
+            stakingContract:
+              type: [string, 'null']
+            registryContract:
+              type: [string, 'null']
+            apiVersion:
+              type: string
+            timestamp:
+              type: string
+              format: date-time
+    SupportedChainsResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            supportedChains:
+              type: array
+              items:
+                type: object
+                properties:
+                  chainType:
+                    type: string
+                  chainId:
+                    type: [string, number]
+                  network:
+                    type: string
+            timestamp:
+              type: string
+              format: date-time
+    CredentialVerificationResponse:
+      type: object
+      additionalProperties: true
+    VcVerificationResponse:
+      type: object
+      additionalProperties: true
+    DidResolutionResponse:
+      type: object
+      additionalProperties: true
+    ZkChallengeCreateRequest:
+      type: object
+      properties:
+        vcHash:
+          type: string
+        verifierDid:
+          type: string
+        subjectDid:
+          type: string
+      required: [vcHash, verifierDid, subjectDid]
+    ZkChallengeResponse:
+      type: object
+      additionalProperties: true
+    ZkProofVerifyRequest:
+      type: object
+      properties:
+        challengeId:
+          type: string
+        proof:
+          type: object
+          additionalProperties: true
+        publicSignals:
+          type: array
+          items:
+            type: string
+      required: [challengeId, proof, publicSignals]
+    ZkProofVerifyResponse:
+      type: object
+      additionalProperties: true

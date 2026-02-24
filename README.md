@@ -166,3 +166,10 @@ npx hardhat run scripts/deploy.cjs --network localhost
 - Enterprise resilience architecture: `docs/phase7/enterprise-resilience.md`
 - Terraform multi-region stack: `infra/terraform/README.md`
 - Disaster recovery playbook: `ops/disaster-recovery/playbook.md`
+
+## Phase 8 Protocolization
+
+- Phase 8 implementation index: `docs/phase8/protocolization-and-governance.md`
+- Protocol architecture and VCP spec: `docs/protocol/`
+- OpenAPI protocol stub: `docs/openapi/vindicate-protocol-v1.yaml`
+- Public SDK package: `sdk/vindicate-js`

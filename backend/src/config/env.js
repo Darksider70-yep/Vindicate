@@ -121,6 +121,14 @@ const envSchema = z.object({
   GCP_KMS_DECRYPT_ENDPOINT: optionalUrlSchema,
   AZURE_KV_DECRYPT_ENDPOINT: optionalUrlSchema,
   ALLOW_LOCAL_KEYS_IN_PRODUCTION: z.string().optional(),
+  INTEROP_CHAIN_CONFIG_JSON: optionalStringSchema,
+  SOLANA_ANCHOR_LOOKUP_URL: optionalUrlSchema,
+  SOLANA_NETWORK: z.string().default("solana:mainnet-beta"),
+  SOLANA_LOOKUP_TIMEOUT_MS: z.coerce.number().int().positive().default(12000),
+  PROTOCOL_VERSION: z.string().default("1.0.0"),
+  PROTOCOL_GOVERNANCE_CONTRACT: optionalStringSchema,
+  PROTOCOL_STAKING_CONTRACT: optionalStringSchema,
+  PROTOCOL_REGISTRY_CONTRACT: optionalStringSchema,
   DID_ETHR_NETWORK: optionalStringSchema,
   DID_DOCUMENT_SERVICE_URL: optionalUrlSchema,
   VC_ISSUER_PRIVATE_KEYS_JSON: optionalStringSchema,
@@ -288,6 +296,26 @@ if (
   );
 }
 
+const protocolAddressEntries = {
+  PROTOCOL_GOVERNANCE_CONTRACT: raw.PROTOCOL_GOVERNANCE_CONTRACT,
+  PROTOCOL_STAKING_CONTRACT: raw.PROTOCOL_STAKING_CONTRACT,
+  PROTOCOL_REGISTRY_CONTRACT: raw.PROTOCOL_REGISTRY_CONTRACT
+};
+
+const normalizedProtocolAddresses = {};
+for (const [label, value] of Object.entries(protocolAddressEntries)) {
+  if (!value) {
+    normalizedProtocolAddresses[label] = null;
+    continue;
+  }
+
+  if (!ethers.isAddress(value)) {
+    throw new Error(`Invalid environment configuration: ${label} must be a valid address when provided`);
+  }
+
+  normalizedProtocolAddresses[label] = ethers.getAddress(value);
+}
+
 function parseJsonObject(rawValue, label) {
   if (!rawValue) {
     return {};
@@ -385,6 +413,9 @@ export const env = Object.freeze({
   API_GOVERNANCE_ENABLED: apiGovernanceEnabled,
   ALLOW_LOCAL_KEYS_IN_PRODUCTION: allowLocalKeysInProduction,
   API_KEY_REQUIRED_PATH_PREFIXES: apiKeyRequiredPathPrefixes,
+  PROTOCOL_GOVERNANCE_CONTRACT: normalizedProtocolAddresses.PROTOCOL_GOVERNANCE_CONTRACT,
+  PROTOCOL_STAKING_CONTRACT: normalizedProtocolAddresses.PROTOCOL_STAKING_CONTRACT,
+  PROTOCOL_REGISTRY_CONTRACT: normalizedProtocolAddresses.PROTOCOL_REGISTRY_CONTRACT,
   AUTH_COOKIE_ENABLED: authCookieEnabled,
   AUTH_COOKIE_SECURE: authCookieSecure,
   DID_ETHR_NETWORK: raw.DID_ETHR_NETWORK ?? String(raw.CHAIN_ID),

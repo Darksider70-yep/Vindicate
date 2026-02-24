@@ -1,0 +1,20 @@
+{
+  "name": "@vindicate/protocol-sdk",
+  "version": "0.1.0",
+  "description": "JavaScript SDK for the Vindicate Credential Protocol",
+  "type": "module",
+  "main": "src/index.js",
+  "exports": {
+    ".": "./src/index.js"
+  },
+  "sideEffects": false,
+  "keywords": [
+    "vindicate",
+    "credentials",
+    "did",
+    "zk",
+    "web3",
+    "verification"
+  ],
+  "license": "MIT"
+}
