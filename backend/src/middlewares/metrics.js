@@ -1,7 +1,7 @@
 import client from "prom-client";
 import { env } from "../config/env.js";
 
-const registry = new client.Registry();
+export const registry = new client.Registry();
 client.collectDefaultMetrics({ register: registry });
 
 const requestCounter = new client.Counter({

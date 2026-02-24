@@ -370,6 +370,39 @@ export async function blacklistCredentialHash({ actorUserId, credentialHash, rea
   return blacklistHash(credentialHash, reason, actorUserId);
 }
 
+export async function emergencyRevokeCredential({ authUser, credentialHash, reason }) {
+  const normalizedHash = credentialHash.toLowerCase();
+  const emergencyReason = `EMERGENCY_OVERRIDE: ${reason}`;
+
+  const blacklistResult = await blacklistHash(normalizedHash, emergencyReason, authUser.sub);
+
+  try {
+    const revocation = await revokeCredential({
+      authUser,
+      credentialHash: normalizedHash,
+      reason: emergencyReason
+    });
+
+    return {
+      blacklist: blacklistResult,
+      revocation
+    };
+  } catch (error) {
+    if (
+      error instanceof AppError &&
+      ["CREDENTIAL_NOT_FOUND", "CREDENTIAL_ALREADY_REVOKED"].includes(error.code)
+    ) {
+      return {
+        blacklist: blacklistResult,
+        revocation: {
+          skipped: true,
+          reason: error.code
+        }
+      };
+    }
+    throw error;
+  }
+}
 export async function getCredentialsByStudent(studentAddress) {
   const normalizedAddress = normalizeAddress(studentAddress);
   const student = await prisma.user.findUnique({

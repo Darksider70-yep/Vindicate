@@ -1,0 +1,5 @@
+uptime_target: 99.95
+verification_latency_ms_p95: 1200
+issuance_latency_ms_p95: 8000
+recovery_rto_minutes: 30
+recovery_rpo_minutes: 5

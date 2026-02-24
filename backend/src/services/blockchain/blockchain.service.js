@@ -5,6 +5,7 @@ import { logger } from "../../config/logger.js";
 import { AppError } from "../../utils/app-error.js";
 import { withRetry } from "../../utils/retry.js";
 import { ProviderManager } from "./provider-manager.js";
+import { keyManagementService } from "../security/key-management.service.js";
 
 const contractJsonPath = new URL("../../../contracts/SkillProof.json", import.meta.url);
 const contractJson = JSON.parse(fs.readFileSync(contractJsonPath, "utf8"));
@@ -78,8 +79,9 @@ class BlockchainService {
     return new ethers.Contract(env.CONTRACT_ADDRESS, contractAbi, provider);
   }
 
-  getWriteContract(provider) {
-    const signer = new ethers.Wallet(env.BACKEND_PRIVATE_KEY, provider);
+  async getWriteContract(provider) {
+    const signerPrivateKey = await keyManagementService.getSignerPrivateKey();
+    const signer = new ethers.Wallet(signerPrivateKey, provider);
     return new ethers.Contract(env.CONTRACT_ADDRESS, contractAbi, signer);
   }
 
@@ -88,7 +90,7 @@ class BlockchainService {
       return await withRetry(
         async () =>
           this.providerManager.execute(async (provider) => {
-            const contract = this.getWriteContract(provider);
+            const contract = await this.getWriteContract(provider);
             const tx = await action(contract);
             const receipt = await tx.wait(env.TX_CONFIRMATIONS, env.TX_TIMEOUT_MS);
 

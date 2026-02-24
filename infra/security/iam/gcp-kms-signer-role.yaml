@@ -1,0 +1,8 @@
+title: Vindicate KMS Signer Role
+bindings:
+  - role: roles/cloudkms.cryptoKeyDecrypter
+    members:
+      - serviceAccount:vindicate-kms-signer@PROJECT_ID.iam.gserviceaccount.com
+  - role: roles/logging.logWriter
+    members:
+      - serviceAccount:vindicate-kms-signer@PROJECT_ID.iam.gserviceaccount.com

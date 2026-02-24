@@ -1,0 +1,15 @@
+scenarios:
+  - name: region-blackhole
+    description: Disable primary DNS pool and confirm secondary takeover.
+    script: ops/performance/simulate-failover.sh
+    expected_rto_minutes: 30
+
+  - name: ipfs-partial-outage
+    description: Force primary IPFS endpoint offline and validate backup providers + alerting.
+    script: ops/performance/chaos-ipfs-outage.sh
+    expected_rto_minutes: 15
+
+  - name: rpc-provider-loss
+    description: Disable first RPC URL and verify provider manager fallback under load.
+    script: ops/performance/rpc-fallback-stress.k6.js
+    expected_rto_minutes: 10

@@ -1,7 +1,6 @@
 import cors from "cors";
 import express from "express";
 import helmet from "helmet";
-import rateLimit from "express-rate-limit";
 import pinoHttp from "pino-http";
 import cookieParser from "cookie-parser";
 import { env } from "./config/env.js";
@@ -10,6 +9,13 @@ import { requestContext } from "./middlewares/request-context.js";
 import { metricsMiddleware } from "./middlewares/metrics.js";
 import { notFound } from "./middlewares/not-found.js";
 import { errorHandler } from "./middlewares/error-handler.js";
+import { apiVersionMiddleware } from "./middlewares/governance/api-version.js";
+import { apiClientAuthMiddleware } from "./middlewares/governance/api-client-auth.js";
+import { tierRateLimiter } from "./middlewares/governance/tier-rate-limit.js";
+import { apiUsageTrackingMiddleware } from "./middlewares/governance/api-usage-tracking.js";
+import { auditAccessMiddleware } from "./middlewares/governance/audit-access.js";
+import { securityAnomalyMiddleware } from "./middlewares/governance/security-anomaly.js";
+import { sloTrackingMiddleware } from "./middlewares/governance/slo-tracking.js";
 import { AppError } from "./utils/app-error.js";
 import routes from "./routes/index.js";
 
@@ -29,19 +35,6 @@ const corsOptions = {
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
   allowedHeaders: ["Authorization", "Content-Type", "X-Request-Id", env.CSRF_HEADER_NAME]
 };
-
-const apiRateLimiter = rateLimit({
-  windowMs: env.RATE_LIMIT_WINDOW_MS,
-  max: env.RATE_LIMIT_MAX,
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: {
-    error: {
-      code: "RATE_LIMITED",
-      message: "Too many requests, please retry later"
-    }
-  }
-});
 
 const httpLogger = pinoHttp({
   logger,
@@ -67,12 +60,19 @@ export function createApp() {
   app.use(requestContext);
   app.use(httpLogger);
   app.use(helmet());
+  app.use(apiVersionMiddleware);
   app.use(cors(corsOptions));
-  app.use(apiRateLimiter);
+  app.use(apiClientAuthMiddleware);
+  app.use(tierRateLimiter);
   app.use(cookieParser());
   app.use(express.json({ limit: env.JSON_BODY_LIMIT }));
   app.use(metricsMiddleware);
+  app.use(sloTrackingMiddleware);
+  app.use(apiUsageTrackingMiddleware);
+  app.use(securityAnomalyMiddleware);
+  app.use(auditAccessMiddleware);
 
+  app.use("/api/v1", routes);
   app.use("/api", routes);
   app.use(routes);
   app.use(notFound);

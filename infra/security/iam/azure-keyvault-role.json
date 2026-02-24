@@ -1,0 +1,20 @@
+{
+  "properties": {
+    "roleName": "VindicateKeyVaultDecryptor",
+    "description": "Least-privilege role for Vindicate key decryption",
+    "assignableScopes": [
+      "/subscriptions/REPLACE_WITH_SUBSCRIPTION_ID"
+    ],
+    "permissions": [
+      {
+        "actions": [
+          "Microsoft.KeyVault/vaults/read",
+          "Microsoft.KeyVault/vaults/secrets/read",
+          "Microsoft.KeyVault/vaults/keys/read",
+          "Microsoft.KeyVault/vaults/keys/decrypt/action"
+        ],
+        "notActions": []
+      }
+    ]
+  }
+}

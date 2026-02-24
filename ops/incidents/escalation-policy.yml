@@ -1,0 +1,19 @@
+escalation:
+  - level: L1
+    trigger: severity=warning
+    notify:
+      - slack:#vindicate-ops
+    timeout_minutes: 15
+  - level: L2
+    trigger: severity=high
+    notify:
+      - slack:#vindicate-security
+      - email:oncall@vindicate.example.com
+    timeout_minutes: 10
+  - level: L3
+    trigger: severity=critical
+    notify:
+      - pagerduty:Vindicate-Primary
+      - slack:#incident-bridge
+      - email:exec-incident@vindicate.example.com
+    timeout_minutes: 5

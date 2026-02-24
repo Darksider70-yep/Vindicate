@@ -1,0 +1,29 @@
+route:
+  receiver: default
+  group_by:
+    - alertname
+    - service
+    - severity
+  group_wait: 30s
+  group_interval: 2m
+  repeat_interval: 30m
+  routes:
+    - matchers:
+        - severity="critical"
+      receiver: pager
+    - matchers:
+        - category="abuse"
+      receiver: secops
+
+receivers:
+  - name: default
+    webhook_configs:
+      - url: https://alerts.vindicate.example/webhook/general
+
+  - name: pager
+    webhook_configs:
+      - url: https://alerts.vindicate.example/webhook/pager
+
+  - name: secops
+    webhook_configs:
+      - url: https://alerts.vindicate.example/webhook/secops

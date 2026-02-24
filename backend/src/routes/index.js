@@ -9,6 +9,7 @@ import healthRoutes from "./health.routes.js";
 import didRoutes from "./did.routes.js";
 import vcRoutes from "./vc.routes.js";
 import zkRoutes from "./zk.routes.js";
+import apiGovernanceAdminRoutes from "./admin/api-governance.routes.js";
 
 const router = Router();
 
@@ -21,6 +22,7 @@ router.use("/governance", governanceRoutes);
 router.use("/did", didRoutes);
 router.use("/vc", vcRoutes);
 router.use("/zk", zkRoutes);
+router.use("/admin/api-governance", apiGovernanceAdminRoutes);
 router.use("/health", healthRoutes);
 
 export default router;

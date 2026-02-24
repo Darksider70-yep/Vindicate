@@ -13,7 +13,11 @@
     "prisma:generate": "prisma generate",
     "prisma:validate": "prisma validate",
     "prisma:migrate:dev": "prisma migrate dev",
-    "prisma:migrate:deploy": "prisma migrate deploy"
+    "prisma:migrate:deploy": "prisma migrate deploy",
+    "dr:reindex:blockchain": "node scripts/dr/reindex-blockchain.js",
+    "dr:resync:events": "node scripts/dr/resync-contract-events.js",
+    "dr:repin:ipfs": "node scripts/dr/repin-ipfs.js",
+    "compliance:gdpr:key-shred": "node scripts/compliance/gdpr-key-shred.js"
   },
   "keywords": [
     "express",

@@ -1,0 +1,55 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Vindicate SIEM Event Schema",
+  "type": "object",
+  "required": [
+    "timestamp",
+    "service",
+    "environment",
+    "eventType",
+    "severity",
+    "message"
+  ],
+  "properties": {
+    "timestamp": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "service": {
+      "type": "string"
+    },
+    "environment": {
+      "type": "string"
+    },
+    "eventType": {
+      "type": "string"
+    },
+    "severity": {
+      "type": "string",
+      "enum": ["info", "warning", "high", "critical"]
+    },
+    "message": {
+      "type": "string"
+    },
+    "requestId": {
+      "type": ["string", "null"]
+    },
+    "actorId": {
+      "type": ["string", "null"]
+    },
+    "actorRole": {
+      "type": ["string", "null"]
+    },
+    "apiClientId": {
+      "type": ["string", "null"]
+    },
+    "sourceIp": {
+      "type": ["string", "null"]
+    },
+    "metadata": {
+      "type": "object",
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": true
+}

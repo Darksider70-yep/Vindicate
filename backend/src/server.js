@@ -5,6 +5,8 @@ import { prisma, assertDatabaseConnectivity } from "./db/prisma.js";
 import { blockchainService } from "./services/blockchain/blockchain.service.js";
 import { ipfsService } from "./services/ipfs.service.js";
 import { initSentry } from "./services/sentry.js";
+import { auditLogService } from "./services/compliance/audit-log.service.js";
+import { apiGovernanceService } from "./services/compliance/api-governance.service.js";
 
 async function assertCriticalDependencies() {
   await Promise.all([
@@ -16,6 +18,11 @@ async function assertCriticalDependencies() {
 
 async function bootstrap() {
   initSentry();
+  await Promise.all([
+    auditLogService.init(),
+    apiGovernanceService.init()
+  ]);
+  auditLogService.startRetentionScheduler();
 
   if (env.NODE_ENV === "development") {
     assertCriticalDependencies().catch((error) => {
@@ -36,6 +43,7 @@ async function bootstrap() {
   const shutdown = async (signal) => {
     logger.info({ signal }, "Graceful shutdown initiated");
     server.close(async () => {
+      auditLogService.stopRetentionScheduler();
       await prisma.$disconnect();
       logger.info("Shutdown complete");
       process.exit(0);

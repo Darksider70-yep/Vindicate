@@ -87,8 +87,40 @@ const envSchema = z.object({
   SIWE_DOMAIN: z.string().min(1),
   SIWE_URI: z.string().url(),
   ENABLE_METRICS: z.string().optional(),
-  SENTRY_DSN: optionalUrlSchema
-  ,
+  SENTRY_DSN: optionalUrlSchema,
+  AUDIT_LOG_ENABLED: z.string().optional(),
+  AUDIT_LOG_DIR: z.string().default(".dist/audit"),
+  AUDIT_RETENTION_DAYS: z.coerce.number().int().positive().default(3650),
+  AUDIT_RETENTION_CHECK_INTERVAL_MINUTES: z.coerce.number().int().positive().default(60),
+  API_GOVERNANCE_ENABLED: z.string().optional(),
+  API_GOVERNANCE_STORE_PATH: z.string().default(".dist/security/api-clients.json"),
+  API_USAGE_LOG_PATH: z.string().default(".dist/security/api-usage.jsonl"),
+  API_CLIENT_BOOTSTRAP_JSON: optionalStringSchema,
+  API_TIER_LIMITS_JSON: optionalStringSchema,
+  API_KEY_HEADER_NAME: z.string().default("x-api-key"),
+  API_KEY_REQUIRED_PATH_PREFIXES: z.string().default(""),
+  API_DEPRECATION_POLICY_URL: z.string().url().default("https://docs.vindicate.example/api/deprecations"),
+  API_V0_SUNSET_AT: z.string().datetime().default("2027-01-01T00:00:00.000Z"),
+  ALERT_WEBHOOK_URL: optionalUrlSchema,
+  SLACK_WEBHOOK_URL: optionalUrlSchema,
+  EMAIL_ALERT_WEBHOOK_URL: optionalUrlSchema,
+  ANOMALY_VERIFY_WINDOW_SECONDS: z.coerce.number().int().positive().default(60),
+  ANOMALY_VERIFY_SPIKE_THRESHOLD: z.coerce.number().int().positive().default(500),
+  ANOMALY_CREDENTIAL_VERIFY_SPIKE_THRESHOLD: z.coerce.number().int().positive().default(80),
+  ANOMALY_ISSUER_WINDOW_SECONDS: z.coerce.number().int().positive().default(3600),
+  ANOMALY_ISSUER_ISSUANCE_THRESHOLD: z.coerce.number().int().positive().default(50),
+  ANOMALY_ALERT_COOLDOWN_SECONDS: z.coerce.number().int().positive().default(300),
+  SLO_VERIFICATION_LATENCY_MS: z.coerce.number().int().positive().default(1200),
+  SLO_ISSUANCE_LATENCY_MS: z.coerce.number().int().positive().default(8000),
+  SLO_ALERT_COOLDOWN_SECONDS: z.coerce.number().int().positive().default(300),
+  KEY_MANAGER_MODE: z.enum(["local", "aws_kms", "gcp_kms", "azure_keyvault"]).default("local"),
+  KEY_MANAGER_KEY_ID: optionalStringSchema,
+  KEY_MANAGER_ENCRYPTION_CONTEXT: optionalStringSchema,
+  ENCRYPTED_BACKEND_PRIVATE_KEY: optionalStringSchema,
+  AWS_KMS_DECRYPT_ENDPOINT: optionalUrlSchema,
+  GCP_KMS_DECRYPT_ENDPOINT: optionalUrlSchema,
+  AZURE_KV_DECRYPT_ENDPOINT: optionalUrlSchema,
+  ALLOW_LOCAL_KEYS_IN_PRODUCTION: z.string().optional(),
   DID_ETHR_NETWORK: optionalStringSchema,
   DID_DOCUMENT_SERVICE_URL: optionalUrlSchema,
   VC_ISSUER_PRIVATE_KEYS_JSON: optionalStringSchema,
@@ -196,18 +228,65 @@ if (raw.IPFS_MIN_PIN_REPLICAS > backupIpfsApiUrls.length + 1) {
   );
 }
 
-const enableMetrics =
-  typeof raw.ENABLE_METRICS === "string" &&
-  ["1", "true", "yes", "on"].includes(raw.ENABLE_METRICS.toLowerCase());
+function parseBooleanFlag(value) {
+  return typeof value === "string" && ["1", "true", "yes", "on"].includes(value.toLowerCase());
+}
 
-const authCookieEnabled =
-  typeof raw.AUTH_COOKIE_ENABLED === "string" &&
-  ["1", "true", "yes", "on"].includes(raw.AUTH_COOKIE_ENABLED.toLowerCase());
+const enableMetrics = parseBooleanFlag(raw.ENABLE_METRICS);
+const auditLogEnabled = parseBooleanFlag(raw.AUDIT_LOG_ENABLED);
+const apiGovernanceEnabled = parseBooleanFlag(raw.API_GOVERNANCE_ENABLED);
+const allowLocalKeysInProduction = parseBooleanFlag(raw.ALLOW_LOCAL_KEYS_IN_PRODUCTION);
+
+const authCookieEnabled = parseBooleanFlag(raw.AUTH_COOKIE_ENABLED);
 
 const authCookieSecure =
   typeof raw.AUTH_COOKIE_SECURE === "string"
-    ? ["1", "true", "yes", "on"].includes(raw.AUTH_COOKIE_SECURE.toLowerCase())
+    ? parseBooleanFlag(raw.AUTH_COOKIE_SECURE)
     : raw.NODE_ENV === "production";
+
+const apiKeyRequiredPathPrefixes = raw.API_KEY_REQUIRED_PATH_PREFIXES.split(",")
+  .map((entry) => entry.trim())
+  .filter(Boolean);
+
+if (raw.NODE_ENV === "production" && raw.KEY_MANAGER_MODE === "local" && !allowLocalKeysInProduction) {
+  throw new Error(
+    "Invalid environment configuration: KEY_MANAGER_MODE=local is blocked in production unless ALLOW_LOCAL_KEYS_IN_PRODUCTION=true"
+  );
+}
+
+if (raw.KEY_MANAGER_MODE !== "local") {
+  if (!raw.KEY_MANAGER_KEY_ID || !raw.ENCRYPTED_BACKEND_PRIVATE_KEY) {
+    throw new Error(
+      "Invalid environment configuration: non-local key manager requires KEY_MANAGER_KEY_ID and ENCRYPTED_BACKEND_PRIVATE_KEY"
+    );
+  }
+
+  if (raw.KEY_MANAGER_MODE === "aws_kms" && !raw.AWS_KMS_DECRYPT_ENDPOINT) {
+    throw new Error("Invalid environment configuration: AWS_KMS_DECRYPT_ENDPOINT is required");
+  }
+  if (raw.KEY_MANAGER_MODE === "gcp_kms" && !raw.GCP_KMS_DECRYPT_ENDPOINT) {
+    throw new Error("Invalid environment configuration: GCP_KMS_DECRYPT_ENDPOINT is required");
+  }
+  if (raw.KEY_MANAGER_MODE === "azure_keyvault" && !raw.AZURE_KV_DECRYPT_ENDPOINT) {
+    throw new Error("Invalid environment configuration: AZURE_KV_DECRYPT_ENDPOINT is required");
+  }
+}
+
+const knownDevPrivateKeys = new Set([
+  "0x0000000000000000000000000000000000000000000000000000000000000000",
+  "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80",
+  "0x59c6995e998f97a5a0044966f09453867e47f6d6f4f1c6f5f3a7b7b6f5f3d8a9"
+]);
+
+if (
+  raw.NODE_ENV !== "development" &&
+  raw.KEY_MANAGER_MODE === "local" &&
+  knownDevPrivateKeys.has(raw.BACKEND_PRIVATE_KEY.toLowerCase())
+) {
+  throw new Error(
+    "Invalid environment configuration: BACKEND_PRIVATE_KEY uses a known development key while KEY_MANAGER_MODE=local"
+  );
+}
 
 function parseJsonObject(rawValue, label) {
   if (!rawValue) {
@@ -302,6 +381,10 @@ export const env = Object.freeze({
   BACKEND_PRIVATE_KEY: raw.BACKEND_PRIVATE_KEY,
   IPFS_ENCRYPTION_KEY: normalizedEncryptionKey,
   ENABLE_METRICS: enableMetrics,
+  AUDIT_LOG_ENABLED: auditLogEnabled,
+  API_GOVERNANCE_ENABLED: apiGovernanceEnabled,
+  ALLOW_LOCAL_KEYS_IN_PRODUCTION: allowLocalKeysInProduction,
+  API_KEY_REQUIRED_PATH_PREFIXES: apiKeyRequiredPathPrefixes,
   AUTH_COOKIE_ENABLED: authCookieEnabled,
   AUTH_COOKIE_SECURE: authCookieSecure,
   DID_ETHR_NETWORK: raw.DID_ETHR_NETWORK ?? String(raw.CHAIN_ID),

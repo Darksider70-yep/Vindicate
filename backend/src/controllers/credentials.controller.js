@@ -1,5 +1,6 @@
 import {
   blacklistCredentialHash,
+  emergencyRevokeCredential,
   getCredentialByHash,
   getCredentialQr,
   issueCredential,
@@ -26,6 +27,18 @@ export async function issue(req, res) {
 
 export async function revoke(req, res) {
   const result = await revokeCredential({
+    authUser: req.auth,
+    credentialHash: req.body.credentialHash,
+    reason: req.body.reason
+  });
+
+  return res.status(200).json({
+    data: result
+  });
+}
+
+export async function emergencyRevoke(req, res) {
+  const result = await emergencyRevokeCredential({
     authUser: req.auth,
     credentialHash: req.body.credentialHash,
     reason: req.body.reason

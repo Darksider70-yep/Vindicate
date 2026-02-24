@@ -1,6 +1,13 @@
 import { Router } from "express";
 import rateLimit from "express-rate-limit";
-import { blacklistHash, getByHash, getQr, issue, revoke } from "../controllers/credentials.controller.js";
+import {
+  blacklistHash,
+  emergencyRevoke,
+  getByHash,
+  getQr,
+  issue,
+  revoke
+} from "../controllers/credentials.controller.js";
 import { authenticate, authorize } from "../middlewares/auth.js";
 import { validate } from "../middlewares/validate.js";
 import { ISSUANCE_ROLES, ROLES } from "../constants/roles.js";
@@ -58,6 +65,14 @@ router.post(
   authorize(ISSUANCE_ROLES),
   validate(revokeCredentialSchema),
   asyncHandler(revoke)
+);
+
+router.post(
+  "/emergency/revoke",
+  authenticate,
+  authorize([ROLES.SUPER_ADMIN]),
+  validate(revokeCredentialSchema),
+  asyncHandler(emergencyRevoke)
 );
 
 router.post(

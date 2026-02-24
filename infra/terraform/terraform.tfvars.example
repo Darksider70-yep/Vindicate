@@ -1,0 +1,45 @@
+environment      = "dev"
+deployment_mode  = "active_passive"
+app_name         = "vindicate-backend"
+k8s_namespace    = "vindicate"
+backend_image    = "ghcr.io/your-org/vindicate-backend:latest"
+container_port   = 4000
+
+cpu_request_millicores = 300
+memory_request_mib     = 512
+cpu_limit_millicores   = 1000
+memory_limit_mib       = 1024
+target_cpu_utilization = 70
+
+primary_cluster = {
+  region_name     = "us-east-1"
+  kubeconfig_path = "~/.kube/config"
+  kube_context    = "eks-vindicate-use1"
+  replicas        = 3
+  max_replicas    = 10
+  external_origin = "primary-api.example.com"
+}
+
+secondary_cluster = {
+  region_name     = "us-west-2"
+  kubeconfig_path = "~/.kube/config"
+  kube_context    = "gke-vindicate-usw2"
+  replicas        = 2
+  max_replicas    = 8
+  external_origin = "secondary-api.example.com"
+}
+
+backend_env = {
+  NODE_ENV             = "production"
+  PORT                 = "4000"
+  ENABLE_METRICS       = "true"
+  PUBLIC_VERIFY_BASE_URL = "https://verify.vindicate.example"
+}
+
+cloudflare_api_token   = "replace_with_cf_token"
+cloudflare_zone_id     = "replace_with_zone_id"
+cloudflare_account_id  = "replace_with_account_id"
+public_hostname        = "api.vindicate.example.com"
+ops_notification_email = "soc@vindicate.example.com"
+
+failover_check_regions = ["ENAM", "WNAM", "WEU"]

@@ -35,4 +35,16 @@ router.get("/ready", async (_req, res, next) => {
 
 router.get("/metrics", metricsHandler);
 
+router.get("/slo", (_req, res) => {
+  res.status(200).json({
+    status: "ok",
+    targets: {
+      uptime: "99.9%",
+      verificationLatencyMs: env.SLO_VERIFICATION_LATENCY_MS,
+      issuanceLatencyMs: env.SLO_ISSUANCE_LATENCY_MS
+    },
+    timestamp: new Date().toISOString()
+  });
+});
+
 export default router;

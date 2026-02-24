@@ -160,3 +160,9 @@ npx hardhat run scripts/deploy.cjs --network localhost
 - The frontend Explorer page currently renders sample/mock entries.
 - The backend expects a valid contract ABI at `backend/contracts/SkillProof.json`.
 - Additional storage hardening details are documented in `backend/docs/ipfs-hardening-architecture.md`.
+
+## Phase 7 Enterprise Operations
+
+- Enterprise resilience architecture: `docs/phase7/enterprise-resilience.md`
+- Terraform multi-region stack: `infra/terraform/README.md`
+- Disaster recovery playbook: `ops/disaster-recovery/playbook.md`

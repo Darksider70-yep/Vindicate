@@ -1,0 +1,63 @@
+groups:
+  - name: vindicate-slo
+    interval: 30s
+    rules:
+      - alert: VindicateVerificationLatencySLOBreach
+        expr: sum(rate(vindicate_slo_verification_latency_breaches_total[5m])) > 0
+        for: 2m
+        labels:
+          severity: warning
+          service: vindicate-backend
+          category: slo
+        annotations:
+          summary: Verification latency SLO breached
+          description: Verification endpoints exceeded configured SLO in the last 5 minutes.
+
+      - alert: VindicateIssuanceLatencySLOBreach
+        expr: sum(rate(vindicate_slo_issuance_latency_breaches_total[5m])) > 0
+        for: 2m
+        labels:
+          severity: critical
+          service: vindicate-backend
+          category: slo
+        annotations:
+          summary: Issuance latency SLO breached
+          description: Credential issuance exceeded configured latency thresholds.
+
+      - alert: VindicateHigh5xxRate
+        expr: |
+          (
+            sum(rate(http_requests_total{status_code=~"5.."}[5m]))
+            /
+            clamp_min(sum(rate(http_requests_total[5m])), 1)
+          ) > 0.02
+        for: 5m
+        labels:
+          severity: critical
+          service: vindicate-backend
+          category: reliability
+        annotations:
+          summary: 5xx error rate above 2%
+          description: Backend 5xx ratio exceeded 2% for at least 5 minutes.
+
+      - alert: VindicateVerificationSpike
+        expr: sum(rate(http_requests_total{route=~".*/credentials/.*",method="GET"}[1m])) > 25
+        for: 1m
+        labels:
+          severity: warning
+          service: vindicate-backend
+          category: abuse
+        annotations:
+          summary: Verification traffic spike
+          description: Verification request rate is unusually high.
+
+      - alert: VindicateReadinessDown
+        expr: up{job="vindicate-backend-ready"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          service: vindicate-backend
+          category: availability
+        annotations:
+          summary: Readiness probe failing
+          description: Backend readiness endpoint is down in at least one region.
