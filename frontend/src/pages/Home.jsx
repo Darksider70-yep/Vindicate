@@ -1,148 +1,137 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import Button from "../components/ui/Button";
+import Badge from "../components/ui/Badge";
+import { Card, CardBody } from "../components/ui/Card";
+import PageContainer from "../components/layout/PageContainer";
 import { useAuth } from "../context/AuthContext";
+import { useToast } from "../context/ToastContext";
 import { getHealth } from "../utils/api";
 
 export default function Home() {
   const { user, authenticating, loginWithWallet, hasEthereumProvider } = useAuth();
+  const { pushToast } = useToast();
   const navigate = useNavigate();
   const [backendStatus, setBackendStatus] = useState("checking");
 
   const handleLogin = async () => {
     if (!hasEthereumProvider) {
       window.open("https://metamask.io/download/", "_blank", "noopener,noreferrer");
+      pushToast("Install MetaMask to continue.", "warning");
       return;
     }
 
     try {
       await loginWithWallet();
+      pushToast("Authentication successful.", "success");
       navigate("/dashboard");
     } catch (error) {
-      window.alert(error.message);
+      pushToast(error.message || "Wallet authentication failed.", "error");
     }
   };
 
   useEffect(() => {
     let mounted = true;
-    const check = async () => {
+
+    const checkHealth = async () => {
       try {
         await getHealth();
-        if (mounted) setBackendStatus("online");
+        if (mounted) {
+          setBackendStatus("online");
+        }
       } catch {
-        if (mounted) setBackendStatus("offline");
+        if (mounted) {
+          setBackendStatus("offline");
+        }
       }
     };
 
-    check();
+    checkHealth();
+
     return () => {
       mounted = false;
     };
   }, []);
 
   return (
-    <div
-      style={{
-        maxWidth: "920px",
-        margin: "20px auto 0",
-        display: "grid",
-        gap: "18px"
-      }}
-    >
-      <section
-        className="surface"
-        style={{
-          padding: "28px",
-          textAlign: "center"
-        }}
-      >
-        <h1 style={{ fontSize: "2.2rem", margin: "0 0 10px", fontWeight: 750 }}>Vindicate</h1>
-        <p style={{ margin: 0, fontSize: "1.02rem", color: "#475569" }}>
-          Blockchain-backed credential verification with secure institutional governance.
-        </p>
-
-        <div
-          style={{
-            marginTop: "20px",
-            display: "inline-flex",
-            alignItems: "center",
-            gap: "8px",
-            padding: "6px 10px",
-            borderRadius: "999px",
-            border: "1px solid #cbd5e1",
-            background: "#f8fafc"
-          }}
-        >
-          <span
-            style={{
-              width: "10px",
-              height: "10px",
-              borderRadius: "999px",
-              background:
-                backendStatus === "online"
-                  ? "#16a34a"
-                  : backendStatus === "offline"
-                    ? "#dc2626"
-                    : "#f59e0b"
-            }}
-          />
-          <span style={{ fontWeight: 600, fontSize: "0.9rem", color: "#334155" }}>
-            Backend: {backendStatus}
-          </span>
-        </div>
-
-        {!user ? (
-          <button
-            type="button"
-            onClick={handleLogin}
-            disabled={authenticating}
-            style={{
-              marginTop: "22px",
-              padding: "11px 18px",
-              borderRadius: "8px",
-              background: "#0f172a",
-              color: "white",
-              border: "none",
-              cursor: "pointer"
-            }}
-          >
-            {authenticating ? "Signing..." : hasEthereumProvider ? "Sign-In With Ethereum" : "Install MetaMask"}
-          </button>
-        ) : (
-          <div style={{ marginTop: "24px" }}>
-            <p>
-              Signed in as <strong>{user.role}</strong>
+    <PageContainer className="space-y-4 lg:space-y-6">
+      <section className="surface-card overflow-hidden">
+        <div className="grid gap-6 p-5 md:p-7 lg:grid-cols-[1.1fr_0.9fr] lg:items-center">
+          <div className="space-y-4">
+            <Badge tone="primary">Decentralized Credential Infrastructure</Badge>
+            <h1 className="text-3xl font-semibold leading-tight text-text md:text-5xl">
+              Enterprise trust, open standards, and instant credential verification.
+            </h1>
+            <p className="max-w-2xl text-sm text-muted md:text-base">
+              Vindicate is built for universities, certifiers, employers, and global mobility systems. Every credential is
+              auditable, portable, and privacy-preserving.
             </p>
-            <Link to="/dashboard">Go to dashboard</Link>
+
+            <div className="flex flex-wrap items-center gap-3">
+              {user ? (
+                <Button type="button" size="lg" onClick={() => navigate("/dashboard")}>Go to dashboard</Button>
+              ) : (
+                <Button type="button" size="lg" loading={authenticating} onClick={handleLogin}>
+                  {hasEthereumProvider ? "Sign in with Ethereum" : "Install MetaMask"}
+                </Button>
+              )}
+              <Button type="button" variant="secondary" size="lg" onClick={() => navigate("/verify")}>Verify credential</Button>
+            </div>
           </div>
-        )}
-      </section>
 
-      <section
-        style={{
-          display: "grid",
-          gap: "14px",
-          gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))"
-        }}
-      >
-        <div className="surface" style={{ padding: "16px" }}>
-          <h3 style={{ marginTop: 0 }}>Issue & Revoke</h3>
-          <p style={{ color: "#475569" }}>Controlled by wallet roles and institution governance.</p>
-          <Link to="/dashboard">Open dashboard</Link>
-        </div>
-
-        <div className="surface" style={{ padding: "16px" }}>
-          <h3 style={{ marginTop: 0 }}>Verify Integrity</h3>
-          <p style={{ color: "#475569" }}>Check hash integrity against blockchain + IPFS.</p>
-          <Link to="/verify">Open verification</Link>
-        </div>
-
-        <div className="surface" style={{ padding: "16px" }}>
-          <h3 style={{ marginTop: 0 }}>Troubleshooting</h3>
-          <p style={{ color: "#475569" }}>
-            If backend is offline, start `backend`, `hardhat`, Postgres, and IPFS.
-          </p>
+          <div className="rounded-xxl border border-border/80 bg-panel p-4 md:p-5">
+            <p className="text-xs font-semibold uppercase tracking-wide text-muted">Operational Signals</p>
+            <div className="mt-3 space-y-3">
+              <div className="rounded-xl border border-border/70 bg-surface p-3">
+                <p className="text-xs text-muted">Backend</p>
+                <p className="mt-1 text-sm font-semibold text-text">{backendStatus}</p>
+              </div>
+              <div className="rounded-xl border border-border/70 bg-surface p-3">
+                <p className="text-xs text-muted">Governance</p>
+                <p className="mt-1 text-sm font-semibold text-text">On-chain role enforcement active</p>
+              </div>
+              <div className="rounded-xl border border-border/70 bg-surface p-3">
+                <p className="text-xs text-muted">Integrity</p>
+                <p className="mt-1 text-sm font-semibold text-text">Blockchain + DB + IPFS tri-verification</p>
+              </div>
+            </div>
+          </div>
         </div>
       </section>
-    </div>
+
+      <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+        <Card>
+          <CardBody className="space-y-2">
+            <h2 className="text-lg font-semibold text-text">Institution Console</h2>
+            <p className="text-sm text-muted">Govern issuer lifecycle, revocations, and audit trails.</p>
+            <Link to="/dashboard" className="text-sm font-semibold">Open dashboard</Link>
+          </CardBody>
+        </Card>
+
+        <Card>
+          <CardBody className="space-y-2">
+            <h2 className="text-lg font-semibold text-text">Issuer Workflow</h2>
+            <p className="text-sm text-muted">Issue and anchor records with transparent transaction proofs.</p>
+            <Link to="/dashboard" className="text-sm font-semibold">Start issuance</Link>
+          </CardBody>
+        </Card>
+
+        <Card>
+          <CardBody className="space-y-2">
+            <h2 className="text-lg font-semibold text-text">Student Portability</h2>
+            <p className="text-sm text-muted">Share credentials with secure URLs and QR verification.</p>
+            <Link to="/dashboard" className="text-sm font-semibold">Open wallet view</Link>
+          </CardBody>
+        </Card>
+
+        <Card>
+          <CardBody className="space-y-2">
+            <h2 className="text-lg font-semibold text-text">Verifier Experience</h2>
+            <p className="text-sm text-muted">Fast hash lookup, trust scoring, and integrity timeline.</p>
+            <Link to="/verify" className="text-sm font-semibold">Launch verifier</Link>
+          </CardBody>
+        </Card>
+      </section>
+    </PageContainer>
   );
 }

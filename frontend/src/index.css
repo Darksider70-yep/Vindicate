@@ -1,18 +1,47 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 :root {
-  font-family: "Segoe UI", "Inter", "Helvetica Neue", Arial, sans-serif;
-  line-height: 1.5;
-  font-weight: 400;
-  color: #0f172a;
-  background: #f8fafc;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+  color-scheme: light;
+  --color-bg: 243 247 251;
+  --color-surface: 255 255 255;
+  --color-panel: 247 250 255;
+  --color-border: 203 213 225;
+  --color-text: 16 28 44;
+  --color-muted: 81 95 121;
+  --color-primary: 15 101 229;
+  --color-primary-strong: 9 73 173;
+  --color-success: 18 148 106;
+  --color-danger: 179 37 65;
+  --color-warning: 180 108 24;
+  --space-xs: 0.25rem;
+  --space-sm: 0.5rem;
+  --space-md: 0.75rem;
+  --space-lg: 1rem;
+  --space-xl: 1.5rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 1rem;
+  --radius-xxl: 1.25rem;
 }
 
-*,
-*::before,
-*::after {
-  box-sizing: border-box;
+.dark {
+  color-scheme: dark;
+  --color-bg: 9 16 28;
+  --color-surface: 13 24 38;
+  --color-panel: 17 31 49;
+  --color-border: 49 68 96;
+  --color-text: 227 236 248;
+  --color-muted: 152 171 199;
+  --color-primary: 88 157 255;
+  --color-primary-strong: 113 176 255;
+  --color-success: 44 186 141;
+  --color-danger: 255 112 136;
+  --color-warning: 236 175 80;
+}
+
+* {
+  @apply box-border;
 }
 
 html,
@@ -22,90 +51,62 @@ body,
 }
 
 body {
-  margin: 0;
-  min-height: 100vh;
-  background:
-    radial-gradient(circle at 20% 0%, rgba(37, 99, 235, 0.08), transparent 35%),
-    radial-gradient(circle at 100% 100%, rgba(16, 185, 129, 0.08), transparent 32%),
-    #f8fafc;
-  color: #0f172a;
+  @apply m-0 bg-bg font-body text-text antialiased;
+  background-image:
+    radial-gradient(circle at 10% 0%, rgb(var(--color-primary) / 0.16), transparent 33%),
+    radial-gradient(circle at 100% 100%, rgb(var(--color-success) / 0.12), transparent 35%),
+    linear-gradient(180deg, rgb(var(--color-bg)), rgb(var(--color-bg)));
+  overflow-x: hidden;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  @apply font-display tracking-tight;
 }
 
 a {
-  color: #1d4ed8;
-  text-decoration: none;
+  @apply text-primary transition-colors hover:text-primary-strong;
 }
 
-a:hover {
-  color: #1e40af;
-}
-
-button {
-  border-radius: 8px;
-  border: 1px solid #cbd5e1;
-  padding: 0.55rem 0.95rem;
-  font-size: 0.95rem;
-  font-weight: 600;
-  font-family: inherit;
-  background: #ffffff;
-  color: #0f172a;
-  cursor: pointer;
-  transition: transform 0.08s ease, border-color 0.15s ease, box-shadow 0.15s ease;
-}
-
-button:hover {
-  border-color: #94a3b8;
-  box-shadow: 0 3px 10px rgba(15, 23, 42, 0.08);
-}
-
-button:active {
-  transform: translateY(1px);
-}
-
-button:disabled {
-  opacity: 0.55;
-  cursor: not-allowed;
-  box-shadow: none;
-}
-
+button,
 input,
 select,
 textarea {
-  color: #0f172a;
+  font: inherit;
 }
 
-.app-shell {
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
+:focus-visible {
+  @apply outline-none;
+  box-shadow: 0 0 0 3px rgb(var(--color-primary) / 0.35);
 }
 
-.app-main {
-  flex: 1;
-  width: 100%;
-  max-width: 1100px;
-  margin: 0 auto;
-  padding: 0 16px 48px;
-}
-
-.surface {
-  background: #ffffff;
-  border: 1px solid #e2e8f0;
-  border-radius: 14px;
-  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
-}
-
-@keyframes spin {
-  from {
-    transform: rotate(0deg);
+@layer components {
+  .surface-card {
+    @apply rounded-xxl border border-border/70 bg-surface shadow-card;
   }
-  to {
-    transform: rotate(360deg);
+
+  .metric-tile {
+    @apply surface-card p-4 md:p-5;
+  }
+
+  .field-label {
+    @apply mb-1.5 block text-sm font-semibold text-text;
+  }
+
+  .section-title {
+    @apply text-lg font-semibold text-text md:text-xl;
   }
 }
 
-@media (max-width: 768px) {
-  .app-main {
-    padding: 0 12px 32px;
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
   }
 }

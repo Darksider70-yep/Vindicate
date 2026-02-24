@@ -215,8 +215,22 @@ export async function revokeCredential(payload) {
   });
 }
 
+export async function emergencyRevokeCredential(payload) {
+  return apiRequest("/credentials/emergency/revoke", {
+    method: "POST",
+    body: payload
+  });
+}
+
 export async function verifyCredential(hash) {
   return apiRequest(`/credentials/${hash}`, {
+    method: "GET",
+    auth: false
+  });
+}
+
+export async function getCredentialQr(hash) {
+  return apiRequest(`/credentials/${hash}/qr`, {
     method: "GET",
     auth: false
   });
@@ -301,5 +315,12 @@ export async function requestWalletRotation(newWalletAddress, reason) {
   return apiRequest("/governance/wallet-rotation/request", {
     method: "POST",
     body: { newWalletAddress, reason }
+  });
+}
+
+export async function getStudentByAddress(address) {
+  return apiRequest(`/students/${address}`, {
+    method: "GET",
+    auth: true
   });
 }
