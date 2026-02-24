@@ -102,7 +102,7 @@ Default local URLs:
 - Backend: `http://localhost:4000`
 - Health: `http://localhost:4000/health` (also available as `/api/health`)
 
-## Docker development (backend + Postgres)
+## Docker development (frontend + backend + Postgres)
 
 ```bash
 docker compose -f docker-compose.dev.yml up --build
@@ -112,6 +112,7 @@ This starts:
 
 - Postgres on `5432`
 - Backend on `4000`
+- Frontend on `5173`
 
 Note: `docker-compose.dev.yml` uses `backend/.env.example` by default, so contract and key values are placeholders. Update env values for full write-path testing.
 
