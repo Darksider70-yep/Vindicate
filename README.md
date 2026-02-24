@@ -192,3 +192,15 @@ npx hardhat run scripts/deploy.cjs --network localhost
 - Ecosystem growth plan: `docs/phase10/ecosystem-growth-plan.md`
 - 3-year rollout roadmap: `docs/phase10/global-rollout-roadmap-3y.md`
 - Risk mitigation matrix: `docs/phase10/risk-mitigation-matrix.md`
+
+## Phase 11 Civilizational Resilience
+
+- Phase 11 strategy index: `docs/phase11/civilizational-integration-strategy.md`
+- 20-year resilience blueprint: `docs/phase11/resilience-blueprint-20y.md`
+- Governance evolution roadmap: `docs/phase11/governance-evolution-roadmap.md`
+- Cryptographic migration plan: `docs/phase11/cryptographic-migration-plan.md`
+- Economic sustainability model: `docs/phase11/economic-sustainability-model.md`
+- Social and cultural continuity: `docs/phase11/social-cultural-adoption-continuity.md`
+- Anti-fragility framework: `docs/phase11/antifragility-framework.md`
+- Stewardship transition plan: `docs/phase11/stewardship-transition-plan.md`
+- Philosophical foundation: `docs/phase11/philosophical-foundation.md`
