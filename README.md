@@ -179,3 +179,16 @@ npx hardhat run scripts/deploy.cjs --network localhost
 - Economic design index: `docs/phase9/economic-design-phase9.md`
 - Tokenomics model JSON: `docs/phase9/tokenomics-model.json`
 - Economic monitoring alerts: `ops/monitoring/economic-alerts.yml`
+
+## Phase 10 Global Adoption
+
+- Phase 10 strategy index: `docs/phase10/global-adoption-strategy.md`
+- Standards alignment table: `docs/phase10/standards-alignment-table.md`
+- Standards references: `docs/phase10/standards-references.md`
+- Partnership blueprint: `docs/phase10/partnership-model-blueprint.md`
+- Enterprise rollout framework: `docs/phase10/enterprise-rollout-framework.md`
+- Regulatory strategy outline: `docs/phase10/regulatory-strategy-outline.md`
+- Brand and trust positioning: `docs/phase10/brand-trust-positioning.md`
+- Ecosystem growth plan: `docs/phase10/ecosystem-growth-plan.md`
+- 3-year rollout roadmap: `docs/phase10/global-rollout-roadmap-3y.md`
+- Risk mitigation matrix: `docs/phase10/risk-mitigation-matrix.md`
