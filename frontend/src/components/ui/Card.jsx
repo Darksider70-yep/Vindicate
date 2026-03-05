@@ -1,25 +1,60 @@
-import { cn } from "../../utils/ui";
+import { forwardRef } from "react";
 
-export function Card({ className, children }) {
-  return <section className={cn("surface-card", className)}>{children}</section>;
-}
+const Card = forwardRef(({ className, ...props }, ref) => (
+  <div
+    ref={ref}
+    className={`surface-card p-4 sm:p-6 ${className}`}
+    {...props}
+  />
+));
+Card.displayName = "Card";
 
-export function CardHeader({ title, subtitle, action, className }) {
-  return (
-    <header className={cn("flex flex-wrap items-start justify-between gap-3 border-b border-border/70 p-4 md:p-5", className)}>
-      <div>
-        <h3 className="section-title">{title}</h3>
-        {subtitle ? <p className="mt-1 text-sm text-muted">{subtitle}</p> : null}
-      </div>
-      {action}
-    </header>
-  );
-}
+const CardHeader = forwardRef(({ className, ...props }, ref) => (
+  <div
+    ref={ref}
+    className={`mb-4 flex flex-col space-y-1.5 ${className}`}
+    {...props}
+  />
+));
+CardHeader.displayName = "CardHeader";
 
-export function CardBody({ className, children }) {
-  return <div className={cn("p-4 md:p-5", className)}>{children}</div>;
-}
+const CardTitle = forwardRef(({ className, ...props }, ref) => (
+  <h3
+    ref={ref}
+    className={`section-title ${className}`}
+    {...props}
+  />
+));
+CardTitle.displayName = "CardTitle";
 
-export function CardFooter({ className, children }) {
-  return <footer className={cn("border-t border-border/70 p-4 md:p-5", className)}>{children}</footer>;
-}
+const CardDescription = forwardRef(({ className, ...props }, ref) => (
+  <p
+    ref={ref}
+    className={`text-sm text-muted ${className}`}
+    {...props}
+  />
+));
+CardDescription.displayName = "CardDescription";
+
+const CardContent = forwardRef(({ className, ...props }, ref) => (
+  <div ref={ref} className={className} {...props} />
+));
+CardContent.displayName = "CardContent";
+
+const CardFooter = forwardRef(({ className, ...props }, ref) => (
+  <div
+    ref={ref}
+    className={`mt-4 flex items-center ${className}`}
+    {...props}
+  />
+));
+CardFooter.displayName = "CardFooter";
+
+export {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardContent,
+  CardFooter,
+};

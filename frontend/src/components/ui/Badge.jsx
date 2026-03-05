@@ -1,17 +1,33 @@
-import { cn } from "../../utils/ui";
+import { cva } from "class-variance-authority";
 
-const TONES = {
-  neutral: "border-border/80 bg-panel text-text",
-  success: "border-success/35 bg-success/15 text-success",
-  danger: "border-danger/35 bg-danger/15 text-danger",
-  warning: "border-warning/40 bg-warning/15 text-warning",
-  primary: "border-primary/35 bg-primary/15 text-primary"
-};
+const badgeVariants = cva(
+  "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
+  {
+    variants: {
+      variant: {
+        primary:
+          "border-transparent bg-primary text-primary-foreground hover:bg-primary/80",
+        secondary:
+          "border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80",
+        destructive:
+          "border-transparent bg-destructive text-destructive-foreground hover:bg-destructive/80",
+        outline: "text-foreground",
+      },
+    },
+    defaultVariants: {
+      variant: "primary",
+    },
+  }
+);
 
-export default function Badge({ children, tone = "neutral", className }) {
+function Badge({
+  className,
+  variant,
+  ...props
+}) {
   return (
-    <span className={cn("inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-semibold", TONES[tone], className)}>
-      {children}
-    </span>
+    <div className={badgeVariants({ variant, className })} {...props} />
   );
 }
+
+export { Badge, badgeVariants };

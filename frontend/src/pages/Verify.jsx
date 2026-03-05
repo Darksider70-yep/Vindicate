@@ -1,29 +1,78 @@
-import { useMemo } from "react";
+import { useState } from "react";
 import { useParams } from "react-router-dom";
-import PageContainer from "../components/layout/PageContainer";
-import { Card, CardBody } from "../components/ui/Card";
-import Badge from "../components/ui/Badge";
-import VerificationWorkbench from "../components/verification/VerificationWorkbench";
+import Container from "../components/layout/Container";
+import { Input } from "../components/ui/Input";
+import { Button } from "../components/ui/Button";
+import VerificationResult from "../components/ui/VerificationResult";
 
-export default function Verify() {
+const Verify = () => {
   const { hash } = useParams();
+  const [inputValue, setInputValue] = useState(hash || "");
+  const [isLoading, setIsLoading] = useState(false);
+  const [verificationResult, setVerificationResult] = useState(null);
 
-  const normalizedHash = useMemo(() => (hash ? hash.toLowerCase() : ""), [hash]);
+  const handleVerify = () => {
+    setIsLoading(true);
+    setVerificationResult(null);
+
+    // Simulate API call
+    setTimeout(() => {
+      const isValid = Math.random() > 0.3; // 70% chance of success
+      setVerificationResult({
+        isValid,
+        credential: {
+          issuer: "did:ethr:0x1234...5678",
+          type: ["VerifiableCredential", "UniversityDegreeCredential"],
+          issuanceDate: new Date().toISOString(),
+          credentialSubject: {
+            id: "did:pkh:eip155:1:0xabcd...efgh",
+            degree: {
+              type: "BachelorDegree",
+              name: "Bachelor of Science in Computer Science",
+            },
+          },
+        },
+      });
+      setIsLoading(false);
+    }, 2000);
+  };
 
   return (
-    <PageContainer className="space-y-4 lg:space-y-6">
-      <Card>
-        <CardBody className="space-y-3">
-          <Badge tone="primary">Verification Portal</Badge>
-          <h1 className="text-2xl font-semibold text-text md:text-3xl">Trust-first credential verification</h1>
-          <p className="max-w-3xl text-sm text-muted md:text-base">
-            Submit a credential hash or scan a QR payload. Vindicate validates integrity across blockchain, database, and
-            distributed storage layers, then returns signed transparency evidence.
-          </p>
-        </CardBody>
-      </Card>
+    <Container className="py-10">
+      <div className="max-w-xl mx-auto">
+        <h1 className="text-3xl font-bold text-center">Verify Credential</h1>
+        <p className="mt-2 text-center text-muted">
+          Enter a credential hash or URL to verify its authenticity.
+        </p>
+        <div className="mt-8 flex gap-2">
+          <Input
+            value={inputValue}
+            onChange={(e) => setInputValue(e.target.value)}
+            placeholder="Enter credential hash..."
+            className="flex-grow"
+          />
+          <Button onClick={handleVerify} disabled={isLoading}>
+            {isLoading ? "Verifying..." : "Verify"}
+          </Button>
+        </div>
 
-      <VerificationWorkbench initialHash={normalizedHash} />
-    </PageContainer>
+        <div className="mt-8">
+          {isLoading && (
+            <div className="text-center">
+              <p>Verifying credential...</p>
+            </div>
+          )}
+          {verificationResult && (
+            <VerificationResult
+              isValid={verificationResult.isValid}
+              credential={verificationResult.credential}
+            />
+          )}
+        </div>
+      </div>
+    </Container>
   );
-}
+};
+
+export default Verify;
+

@@ -1,20 +1,25 @@
-import { cn } from "../../utils/ui";
-
-export function Skeleton({ className }) {
-  return <div className={cn("animate-pulse rounded-lg bg-panel", className)} />;
-}
-
-export function PageSkeleton() {
+const Skeleton = ({ className, ...props }) => {
   return (
-    <div className="mx-auto w-full max-w-7xl space-y-4 p-4 md:p-6">
-      <Skeleton className="h-9 w-52" />
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {Array.from({ length: 4 }).map((_, index) => (
-          <Skeleton key={index} className="h-24" />
-        ))}
-      </div>
-      <Skeleton className="h-56" />
-      <Skeleton className="h-56" />
-    </div>
+    <div
+      className={`animate-pulse rounded-md bg-muted/20 ${className}`}
+      {...props}
+    />
   );
-}
+};
+
+const PageSkeleton = () => (
+  <div className="p-4 sm:p-6">
+    <div className="flex items-center justify-between mb-6">
+      <Skeleton className="h-8 w-48" />
+      <Skeleton className="h-10 w-24" />
+    </div>
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <Skeleton className="h-32" />
+      <Skeleton className="h-32" />
+      <Skeleton className="h-32" />
+    </div>
+    <Skeleton className="h-64 mt-6" />
+  </div>
+);
+
+export { Skeleton, PageSkeleton };
