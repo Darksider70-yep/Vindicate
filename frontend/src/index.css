@@ -2,101 +2,76 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  color-scheme: light;
-  --color-bg: 243 247 251;
-  --color-surface: 255 255 255;
-  --color-panel: 247 250 255;
-  --color-border: 203 213 225;
-  --color-text: 16 28 44;
-  --color-muted: 81 95 121;
-  --color-primary: 15 101 229;
-  --color-primary-strong: 9 73 173;
-  --color-success: 18 148 106;
-  --color-danger: 179 37 65;
-  --color-warning: 180 108 24;
-  --space-xs: 0.25rem;
-  --space-sm: 0.5rem;
-  --space-md: 0.75rem;
-  --space-lg: 1rem;
-  --space-xl: 1.5rem;
-  --radius-lg: 0.75rem;
-  --radius-xl: 1rem;
-  --radius-xxl: 1.25rem;
-}
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
 
-.dark {
-  color-scheme: dark;
-  --color-bg: 9 16 28;
-  --color-surface: 13 24 38;
-  --color-panel: 17 31 49;
-  --color-border: 49 68 96;
-  --color-text: 227 236 248;
-  --color-muted: 152 171 199;
-  --color-primary: 88 157 255;
-  --color-primary-strong: 113 176 255;
-  --color-success: 44 186 141;
-  --color-danger: 255 112 136;
-  --color-warning: 236 175 80;
-}
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
 
-* {
-  @apply box-border;
-}
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
 
-html,
-body,
-#root {
-  min-height: 100%;
-}
+    --primary: 222.2 47.4% 11.2%;
+    --primary-foreground: 210 40% 98%;
 
-body {
-  @apply m-0 bg-bg font-body text-text antialiased;
-  background-image:
-    radial-gradient(circle at 10% 0%, rgb(var(--color-primary) / 0.16), transparent 33%),
-    radial-gradient(circle at 100% 100%, rgb(var(--color-success) / 0.12), transparent 35%),
-    linear-gradient(180deg, rgb(var(--color-bg)), rgb(var(--color-bg)));
-  overflow-x: hidden;
-}
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
 
-h1,
-h2,
-h3,
-h4 {
-  @apply font-display tracking-tight;
-}
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
 
-a {
-  @apply text-primary transition-colors hover:text-primary-strong;
-}
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222.2 47.4% 11.2%;
 
-button,
-input,
-select,
-textarea {
-  font: inherit;
-}
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
 
-:focus-visible {
-  @apply outline-none;
-  box-shadow: 0 0 0 3px rgb(var(--color-primary) / 0.35);
-}
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 222.2 84% 4.9%;
 
-@layer components {
-  .surface-card {
-    @apply rounded-xxl border border-border/70 bg-surface shadow-card;
+    --radius: 0.5rem;
   }
 
-  .metric-tile {
-    @apply surface-card p-4 md:p-5;
-  }
+  .dark {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
 
-  .field-label {
-    @apply mb-1.5 block text-sm font-semibold text-text;
-  }
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
 
-  .section-title {
-    @apply text-lg font-semibold text-text md:text-xl;
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+
+    --primary: 210 40% 98%;
+    --primary-foreground: 222.2 47.4% 11.2%;
+
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 212.7 26.8% 83.9%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
   }
 }
 

@@ -8,7 +8,7 @@ import { Button } from "../ui/Button";
 const AppHeader = () => {
   const [isOpen, setIsOpen] = useState(false);
   const { theme, toggleTheme } = useTheme();
-  const { user, login, logout } = useAuth();
+  const { user, login, logout, loading } = useAuth();
 
   const navLinks = [
     { href: "/dashboard", label: "Dashboard" },
@@ -39,12 +39,12 @@ const AppHeader = () => {
             {theme === "light" ? <Moon size={20} /> : <Sun size={20} />}
           </Button>
           {user ? (
-            <Button onClick={() => logout()} variant="secondary" size="sm">
+            <Button onClick={logout} variant="secondary" size="sm" disabled={loading}>
               Disconnect
             </Button>
           ) : (
-            <Button onClick={() => login("student")} size="sm">
-              Connect Wallet
+            <Button onClick={login} size="sm" disabled={loading}>
+              {loading ? "Connecting..." : "Connect Wallet"}
             </Button>
           )}
           <div className="md:hidden">
